@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
@@ -20,14 +22,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -44,7 +43,6 @@ import brawijaya.example.purisaehomestay.ui.theme.Typography
 fun HomeScreen(
     navController: NavController
 ) {
-    val context = LocalContext.current
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -90,7 +88,7 @@ fun HomeScreen(
                     .padding(top = 64.dp)
                     .padding(innerPadding)
             ) {
-                HomeScreenContent()
+                HomeScreenContent(navController)
             }
 
             Box(
@@ -111,7 +109,9 @@ fun HomeScreen(
 }
 
 @Composable
-fun HomeScreenContent() {
+fun HomeScreenContent(
+    navController: NavController
+) {
     Column {
         Image(
             painter = painterResource(id = R.drawable.homestay_image),
@@ -124,30 +124,20 @@ fun HomeScreenContent() {
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .padding(bottom = 16.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(color = PrimaryGold),
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Pesan Sekarang",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
+            Button(
+                colors = ButtonDefaults.buttonColors(PrimaryGold),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                onClick = {
+                    navController.navigate(Screen.Order.route)
                 }
+            ) {
+                Text("Pesan Sekarang")
             }
 
             Text(
                 text = "Promo",
-                modifier = Modifier.padding(bottom = 8.dp),
+                modifier = Modifier.padding(vertical = 8.dp),
                 style = Typography.headlineLarge,
                 fontSize = 20.sp
             )

@@ -1,6 +1,7 @@
 package brawijaya.example.purisaehomestay.ui.components
 
 import android.graphics.BlurMaskFilter
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +24,6 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -58,7 +58,8 @@ fun BottomNavigation(
     BottomAppBar(
         modifier = modifier
             .fillMaxWidth(0.85f)
-            .zIndex(1f),
+            .zIndex(1f)
+            .background(Color.Transparent),
         containerColor = Color.Transparent,
         contentColor = Color.Black,
         tonalElevation = 0.dp,
@@ -150,13 +151,13 @@ fun BottomNavItem(
     Box(
         modifier = Modifier
             .padding(vertical = 4.dp, horizontal = 8.dp)
+            .clip(CircleShape)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape),
+                .size(48.dp),
             contentAlignment = Alignment.Center
         ) {
             Icon(
