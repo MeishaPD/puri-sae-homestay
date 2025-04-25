@@ -2,14 +2,17 @@ package brawijaya.example.purisaehomestay.ui.screens.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -17,11 +20,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -35,6 +40,7 @@ import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.components.BottomNavigation
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
+import brawijaya.example.purisaehomestay.ui.theme.LightGreyBg
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.theme.Typography
 
@@ -132,7 +138,12 @@ fun HomeScreenContent(
                     navController.navigate(Screen.Order.route)
                 }
             ) {
-                Text("Pesan Sekarang")
+                Text(
+                    "Pesan Sekarang",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
             }
 
             Text(
@@ -142,28 +153,49 @@ fun HomeScreenContent(
                 fontSize = 20.sp
             )
 
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
                     .padding(bottom = 16.dp)
-                    .background(Color.LightGray)
-            )
+                    .horizontalScroll(rememberScrollState())
+            ) {
+                repeat(5){
+                    Box(
+                        modifier = Modifier
+                            .width(240.dp)
+                            .height(120.dp)
+                            .padding(end = 8.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.LightGray),
+                    )
+                }
+            }
 
             Text(
-                text = "Ulasan",
+                text = "Berita",
                 modifier = Modifier.padding(bottom = 8.dp),
                 style = Typography.headlineLarge,
                 fontSize = 20.sp
             )
 
             repeat(5) {
+                Text(
+                    text = "22/04/2025",
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.LightGray
+                )
+                Text(
+                    text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    style = MaterialTheme.typography.bodySmall
+                )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
                         .padding(vertical = 4.dp)
-                        .background(Color.LightGray)
+                        .background(Color.LightGray),
                 )
 
                 Spacer(modifier = Modifier.padding(8.dp))

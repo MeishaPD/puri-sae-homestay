@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.QuestionAnswer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,6 +56,10 @@ fun ProfileScreen(
                     Text(
                         text = "Profile",
                         color = PrimaryGold,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 20.sp
+                        ),
                         modifier = Modifier
                             .padding(start = 2.dp)
                     )
@@ -97,7 +102,7 @@ fun ProfileContent(
     navController: NavController
 ) {
 
-    val isLoggedIn = false
+    val isLoggedIn = true
 
     Column(modifier = Modifier.padding(32.dp)) {
         Column(
@@ -114,7 +119,7 @@ fun ProfileContent(
             ) {
                 Text(
                     text = "Masuk",
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
             }
@@ -136,8 +141,10 @@ fun ProfileContent(
                     Text(
                         text = "Daftar di sini",
                         color = PrimaryGold,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 12.sp
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.sp
+                        ),
                     )
                 }
             }
@@ -161,7 +168,9 @@ fun ProfileContent(
                     MenuItemWithIcon(
                         icon = Icons.Rounded.PermContactCalendar,
                         title = "Hubungi Kami",
-                        onClick = {}
+                        onClick = {
+                            navController.navigate(Screen.ContactUs.route)
+                        }
                     )
 
                     Text(
@@ -173,7 +182,7 @@ fun ProfileContent(
 
                     MenuItemWithIcon(
                         icon = Icons.Rounded.Info,
-                        title = "Hubungi Kami",
+                        title = "Informasi Akun",
                         onClick = {}
                     )
                     MenuItemWithIcon(
@@ -185,12 +194,16 @@ fun ProfileContent(
                     MenuItemWithIcon(
                         icon = Icons.Rounded.QuestionAnswer,
                         title = "FAQ",
-                        onClick = {}
+                        onClick = {
+                            navController.navigate(Screen.FAQ.route)
+                        }
                     )
                     MenuItemWithIcon(
                         icon = Icons.Rounded.PermContactCalendar,
                         title = "Hubungi Kami",
-                        onClick = {}
+                        onClick = {
+                            navController.navigate(Screen.ContactUs.route)
+                        }
                     )
                 }
             }

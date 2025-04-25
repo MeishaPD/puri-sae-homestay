@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -72,6 +73,10 @@ fun LoginScreen(
                     Text(
                         text = "Masuk",
                         color = PrimaryGold,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 20.sp
+                        ),
                         modifier = Modifier
                             .padding(start = 2.dp)
                     )
@@ -202,14 +207,18 @@ fun LoginContent(
             ),
             shape = RoundedCornerShape(8.dp),
             isError = isEmailError,
-            supportingText = {
-                if (isEmailError) {
+            supportingText = if (isEmailError) {
+                {
                     Text(
                         text = emailErrorMessage,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 12.sp
+                        ),
                         color = Color.Red
                     )
                 }
-            }
+            } else null
         )
 
         OutlinedTextField(
@@ -240,14 +249,19 @@ fun LoginContent(
             ),
             shape = RoundedCornerShape(8.dp),
             isError = isPasswordError,
-            supportingText = {
-                if (isPasswordError) {
+            supportingText = if (isPasswordError) {
+                {
                     Text(
                         text = passwordErrorMessage,
+
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 12.sp
+                        ),
                         color = Color.Red
                     )
                 }
-            }
+            } else null
         )
 
         Row(
@@ -257,19 +271,25 @@ fun LoginContent(
         ) {
             Text(
                 text = "Lupa password?",
-                fontSize = 12.sp
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 12.sp
+                ),
             )
             
             TextButton(onClick = {onForgotPasswordClick}) {
                 Text(
                     text = "Klik di sini",
                     color = PrimaryGold,
-                    fontSize = 12.sp
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    ),
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = onLoginClick,
@@ -281,11 +301,11 @@ fun LoginContent(
         ) {
             Text(
                 text = "Masuk",
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Bold
+                )
             )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -302,7 +322,7 @@ fun LoginContent(
                 Text(
                     text = "Daftar Sekarang",
                     color = PrimaryGold,
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }

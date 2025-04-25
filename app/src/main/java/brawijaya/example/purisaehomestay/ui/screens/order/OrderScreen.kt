@@ -1,9 +1,7 @@
 package brawijaya.example.purisaehomestay.ui.screens.order
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,7 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.ui.components.BottomNavigation
-import brawijaya.example.purisaehomestay.ui.components.DateInputField
+import brawijaya.example.purisaehomestay.ui.components.DateRangePicker
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.order.components.PackageCard
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
@@ -66,9 +64,9 @@ fun OrderScreen(
     val updateCheckInDate = { date: String ->
         setCheckInDate(date)
 
-        if (checkOutDate.isEmpty()) {
-            if (DateUtils.isCheckOutBeforeCheckIn(date, checkOutDate)) {
-                setCheckOutError("Tanggal check-out tidak boleh sebelum tanggal check-in")
+        if (checkOutDate.isNotEmpty()) {
+            if (!DateUtils.isValidCheckOutDate(date, checkOutDate)) {
+                setCheckOutError("Tanggal check-out harus setelah tanggal check-in")
             } else {
                 setCheckOutError(null)
             }
@@ -78,9 +76,9 @@ fun OrderScreen(
     val updateCheckOutDate = { date: String ->
         setCheckOutDate(date)
 
-        if (checkInDate.isEmpty()) {
-            if (DateUtils.isCheckOutBeforeCheckIn(checkInDate, date)) {
-                setCheckOutError("Tanggal check-out tidak boleh sebelum tanggal check-in")
+        if (checkInDate.isNotEmpty()) {
+            if (!DateUtils.isValidCheckOutDate(checkInDate, date)) {
+                setCheckOutError("Tanggal check-out harus setelah tanggal check-in")
             } else {
                 setCheckOutError(null)
             }
@@ -97,6 +95,10 @@ fun OrderScreen(
                     Text(
                         text = "Pemesanan",
                         color = PrimaryGold,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 20.sp
+                        ),
                         modifier = Modifier
                             .padding(start = 2.dp)
                     )
@@ -171,12 +173,6 @@ fun OrderScreenContent(
     checkOutError: String? = null
 ) {
 
-    val minCheckOutDate = if (checkInDate.isNotEmpty()) {
-        DateUtils.getMillisFromDate(checkInDate)
-    } else {
-        null
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -186,35 +182,25 @@ fun OrderScreenContent(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                DateInputField(
-                    label = "Check In",
-                    value = checkInDate,
-                    onDateSelected = onCheckInDateSelected,
-                    modifier = Modifier.weight(1f),
-                    minDate = System.currentTimeMillis() - 1000
-                )
 
-                DateInputField(
-                    label = "Check Out",
-                    value = checkOutDate,
-                    onDateSelected = onCheckOutDateSelected,
-                    modifier = Modifier.weight(1f),
-                    minDate = minCheckOutDate ?: (System.currentTimeMillis() - 1000),
-                    errorText = checkOutError
-                )
-            }
+            DateRangePicker(
+                checkInDate = checkInDate,
+                onCheckInDateSelected = onCheckInDateSelected,
+                checkOutDate = checkOutDate,
+                onCheckOutDateSelected = onCheckOutDateSelected,
+                modifier = Modifier.fillMaxWidth(),
+                minCheckInDate = System.currentTimeMillis() - 1000,
+                checkOutError = checkOutError
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
                 text = "Pilih Paket",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                ),
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
@@ -277,7 +263,7 @@ fun OrderScreenContent(
             OutlinedTextField(
                 value = guestCount,
                 onValueChange = onGuestCountChange,
-                label = { Text("Jumlah Tamu") },
+                label = { Text("Jumlah Tamu", style = MaterialTheme.typography.labelSmall) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Rounded.Person,
@@ -299,6 +285,7 @@ fun OrderScreenContent(
                         modifier = Modifier
                             .padding(end = 16.dp),
                         text = "Orang",
+                        style = MaterialTheme.typography.labelSmall,
                         color = PrimaryGold
                     )
                 },
@@ -313,7 +300,11 @@ fun OrderScreenContent(
                 shape = RoundedCornerShape(8.dp),
                 onClick = {  }
             ) {
-                Text("Pesan Sekarang")
+                Text("Pesan Sekarang",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    ),)
             }
 
             HorizontalDivider(
@@ -339,13 +330,13 @@ fun OrderScreenContent(
                 )
 
                 Text(
-                    text = "2. Cek in minimal jam 14.00 WIB dan telah melunasi biaya sewa, cek out maksimal jam 12.00 WIB.",
+                    text = "2. Check-in minimal jam 14.00 WIB dan telah melunasi biaya sewa, check-out maksimal jam 12.00 WIB.",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
                 Text(
-                    text = "3. Cek in atau cek out diluar jam diatas harus dengan perjanjian sebelumnya.",
+                    text = "3. check-in atau check-out di luar jam di atas harus dengan perjanjian sebelumnya.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

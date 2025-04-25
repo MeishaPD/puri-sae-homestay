@@ -9,6 +9,8 @@ import brawijaya.example.purisaehomestay.ui.screens.auth.RegisterScreen
 import brawijaya.example.purisaehomestay.ui.screens.home.HomeScreen
 import brawijaya.example.purisaehomestay.ui.screens.order.OrderScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.ProfileScreen
+import brawijaya.example.purisaehomestay.ui.screens.profile.menus.ContactUsScreen
+import brawijaya.example.purisaehomestay.ui.screens.profile.menus.FAQScreen
 import brawijaya.example.purisaehomestay.ui.screens.promo.PromoScreen
 
 sealed class Screen(val route: String){
@@ -18,6 +20,8 @@ sealed class Screen(val route: String){
     object Profile : Screen("profile")
     object Login : Screen("login")
     object Register : Screen("register")
+    object ContactUs : Screen("contact_us")
+    object FAQ : Screen("FAQ")
 }
 
 @Composable
@@ -43,6 +47,12 @@ fun AppNavigation(navController: NavHostController) {
         }
         composable(Screen.Register.route) {
             RegisterScreen(navController = navController)
+        }
+        composable(Screen.ContactUs.route) {
+            ContactUsScreen(navController = navController)
+        }
+        composable(Screen.FAQ.route) {
+            FAQScreen(navController = navController)
         }
     }
 }

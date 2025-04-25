@@ -1,5 +1,6 @@
 package brawijaya.example.purisaehomestay.ui.screens.profile.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,6 +33,7 @@ fun MenuItemWithIcon(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable { onClick() }
                 .padding(vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -53,8 +56,10 @@ fun MenuItemWithIcon(
 
             Text(
                 text = title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 14.sp
+                ),
                 modifier = Modifier
                     .padding(start = 16.dp)
                     .weight(1f)

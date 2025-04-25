@@ -10,8 +10,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
-import androidx.compose.material.icons.rounded.Whatsapp
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -21,20 +21,18 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
-import brawijaya.example.purisaehomestay.ui.screens.profile.components.MenuItemWithIcon
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ContactUsScreen(
+fun FAQScreen(
     navController: NavController
 ) {
     Scaffold(
@@ -45,7 +43,7 @@ fun ContactUsScreen(
                 ),
                 title = {
                     Text(
-                        text = "Hubungi Kami",
+                        text = "FAQ",
                         color = PrimaryGold,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Normal,
@@ -77,31 +75,76 @@ fun ContactUsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(innerPadding)
         ) {
-            ContactUsContent()
+            FAQContent()
         }
     }
 }
 
 @Composable
-fun ContactUsContent() {
+fun FAQContent() {
     Column(
         modifier = Modifier.padding(32.dp)
     ) {
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        MenuItemWithIcon(
-            icon = Icons.Rounded.Whatsapp,
-            title = "Whatsapp",
-            onClick = {}
+        FAQItem(
+            question = "Hah? Apa? (ceritanya pertanyaan)",
+            answer = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        MenuItemWithIcon(
-            painter = painterResource(id = R.drawable.instagram),
-            title = "Instagram",
-            onClick = {}
+        FAQItem(
+            question = "Hah? Apa? (ceritanya pertanyaan)",
+            answer = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+        )
+        FAQItem(
+            question = "Hah? Apa? (ceritanya pertanyaan)",
+            answer = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+        )
+        FAQItem(
+            question = "Hah? Apa? (ceritanya pertanyaan)",
+            answer = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+        )
+        FAQItem(
+            question = "Hah? Apa? (ceritanya pertanyaan)",
+            answer = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+        )
+        FAQItem(
+                question = "Hah? Apa? (ceritanya pertanyaan)",
+        answer = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
         )
     }
+}
+
+@Composable
+fun FAQItem(
+    question: String,
+    answer: String
+) {
+    Column {
+        Text(
+            text = question,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            ),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Text(
+            text = answer,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Normal,
+                fontSize = 12.sp
+            ),
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        HorizontalDivider()
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun Preview() {
+    FAQItem(
+        question = "Hah? Apa? (ceritanya pertanyaan)",
+        answer = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+    )
 }

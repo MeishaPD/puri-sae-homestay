@@ -2,38 +2,20 @@ package brawijaya.example.purisaehomestay.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.Font
-import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.sp
-
-private val provider = GoogleFont.Provider(
-    providerAuthority = "com.google.android.gms.fonts",
-    providerPackage = "com.google.android.gms",
-    certificates = listOf(
-        listOf(
-            byteArrayOf(
-                0x3c, 0xc3.toByte(), 0xf1.toByte(), 0x0d, 0x1f, 0x41, 0x3f, 0x8a.toByte(),
-                0x6a, 0xb7.toByte(), 0x96.toByte(), 0xf4.toByte(), 0x9b.toByte(), 0x13, 0xfa.toByte(), 0xa1.toByte(),
-                0xf4.toByte(), 0x1f, 0xda.toByte(), 0x1b, 0xd0.toByte(), 0x78, 0xd4.toByte(), 0xe7.toByte(),
-                0x78, 0x52, 0x23, 0x71, 0x68, 0x2b, 0x4f, 0x14
-            )
-        )
-    )
-)
-
-private val fontName = GoogleFont("Poppins")
+import brawijaya.example.purisaehomestay.R
 
 val PoppinsFamily = FontFamily(
-    Font(googleFont = fontName, fontProvider = provider, weight = FontWeight.Light),
-    Font(googleFont = fontName, fontProvider = provider, weight = FontWeight.Normal),
-    Font(googleFont = fontName, fontProvider = provider, weight = FontWeight.Medium),
-    Font(googleFont = fontName, fontProvider = provider, weight = FontWeight.SemiBold),
-    Font(googleFont = fontName, fontProvider = provider, weight = FontWeight.Bold)
+    Font(R.font.poppins_light, weight = FontWeight.Light),
+    Font(R.font.poppins_regular, weight = FontWeight.Normal),
+    Font(R.font.poppins_medium, weight = FontWeight.Medium),
+    Font(R.font.poppins_semibold, weight = FontWeight.SemiBold),
+    Font(R.font.poppins_bold, weight = FontWeight.Bold)
 )
 
-// Set of Material typography styles with Poppins font
 val Typography = Typography(
     bodyLarge = TextStyle(
         fontFamily = PoppinsFamily,
@@ -55,6 +37,13 @@ val Typography = Typography(
         fontSize = 11.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
+    ),
+    labelMedium = TextStyle(
+        fontFamily = PoppinsFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 14.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.15.sp
     ),
     headlineLarge = TextStyle(
         fontFamily = PoppinsFamily,
@@ -104,5 +93,5 @@ val Typography = Typography(
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp
-    )
+    ),
 )

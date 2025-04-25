@@ -37,11 +37,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
@@ -53,21 +55,18 @@ fun RegisterScreen(
     navController: NavController
 ) {
     var name by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
     var isNameError by remember { mutableStateOf(false) }
-    var isAddressError by remember { mutableStateOf(false) }
     var isPhoneNumberError by remember { mutableStateOf(false) }
     var isEmailError by remember { mutableStateOf(false) }
     var isPasswordError by remember { mutableStateOf(false) }
     var isConfirmPasswordError by remember { mutableStateOf(false) }
 
     var nameErrorMessage by remember { mutableStateOf("") }
-    var addressErrorMessage by remember { mutableStateOf("") }
     var phoneNumberErrorMessage by remember { mutableStateOf("") }
     var emailErrorMessage by remember { mutableStateOf("") }
     var passwordErrorMessage by remember { mutableStateOf("") }
@@ -83,6 +82,10 @@ fun RegisterScreen(
                     Text(
                         text = "Daftar",
                         color = PrimaryGold,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 20.sp
+                        ),
                         modifier = Modifier
                             .padding(start = 2.dp)
                     )
@@ -115,11 +118,6 @@ fun RegisterScreen(
                     name = it
                     isNameError = false
                 },
-                address = address,
-                onAddressChange = {
-                    address = it
-                    isAddressError = false
-                },
                 phoneNumber = phoneNumber,
                 onPhoneNumberChange = {
                     phoneNumber = it
@@ -141,13 +139,11 @@ fun RegisterScreen(
                     isConfirmPasswordError = false
                 },
                 isNameError = isNameError,
-                isAddressError = isAddressError,
                 isPhoneNumberError = isPhoneNumberError,
                 isEmailError = isEmailError,
                 isPasswordError = isPasswordError,
                 isConfirmPasswordError = isConfirmPasswordError,
                 nameErrorMessage = nameErrorMessage,
-                addressErrorMessage = addressErrorMessage,
                 phoneNumberErrorMessage = phoneNumberErrorMessage,
                 emailErrorMessage = emailErrorMessage,
                 passwordErrorMessage = passwordErrorMessage,
@@ -159,13 +155,6 @@ fun RegisterScreen(
                         nameErrorMessage = "Nama tidak boleh kosong"
                     } else {
                         isNameError = false
-                    }
-
-                    if (address.isEmpty()) {
-                        isAddressError = true
-                        addressErrorMessage = "Alamat tidak boleh kosong"
-                    } else {
-                        isAddressError = false
                     }
 
                     if (phoneNumber.isEmpty()) {
@@ -208,7 +197,7 @@ fun RegisterScreen(
                         isConfirmPasswordError = false
                     }
 
-                    if (!isNameError && !isAddressError && !isPhoneNumberError &&
+                    if (!isNameError && !isPhoneNumberError &&
                         !isEmailError && !isPasswordError && !isConfirmPasswordError) {
                         navController.navigate(Screen.Login.route) {
                             popUpTo(Screen.Register.route) { inclusive = true }
@@ -237,8 +226,6 @@ private fun isValidPhoneNumber(phone: String): Boolean {
 fun RegisterContent(
     name: String,
     onNameChange: (String) -> Unit,
-    address: String,
-    onAddressChange: (String) -> Unit,
     phoneNumber: String,
     onPhoneNumberChange: (String) -> Unit,
     email: String,
@@ -248,13 +235,11 @@ fun RegisterContent(
     confirmPassword: String,
     onConfirmPasswordChange: (String) -> Unit,
     isNameError: Boolean,
-    isAddressError: Boolean,
     isPhoneNumberError: Boolean,
     isEmailError: Boolean,
     isPasswordError: Boolean,
     isConfirmPasswordError: Boolean,
     nameErrorMessage: String,
-    addressErrorMessage: String,
     phoneNumberErrorMessage: String,
     emailErrorMessage: String,
     passwordErrorMessage: String,
@@ -274,7 +259,12 @@ fun RegisterContent(
         OutlinedTextField(
             value = name,
             onValueChange = onNameChange,
-            label = { Text("Nama Lengkap") },
+            label = {
+                Text(
+                    "Nama Lengkap",
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                    },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
@@ -291,34 +281,7 @@ fun RegisterContent(
                 if (isNameError) {
                     Text(
                         text = nameErrorMessage,
-                        color = Color.Red
-                    )
-                }
-            }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = address,
-            onValueChange = onAddressChange,
-            label = { Text("Alamat") },
-            singleLine = false,
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
-                focusedBorderColor = PrimaryGold,
-                unfocusedLabelColor = Color.LightGray,
-                focusedLabelColor = Color.Black,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedContainerColor = MaterialTheme.colorScheme.surface
-            ),
-            shape = RoundedCornerShape(8.dp),
-            isError = isAddressError,
-            supportingText = {
-                if (isAddressError) {
-                    Text(
-                        text = addressErrorMessage,
+                        style = MaterialTheme.typography.labelSmall,
                         color = Color.Red
                     )
                 }
@@ -330,7 +293,12 @@ fun RegisterContent(
         OutlinedTextField(
             value = phoneNumber,
             onValueChange = onPhoneNumberChange,
-            label = { Text("Nomor Telepon") },
+            label = { 
+                Text(
+                    "Nomor Telepon",
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                    },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             modifier = Modifier.fillMaxWidth(),
@@ -348,6 +316,7 @@ fun RegisterContent(
                 if (isPhoneNumberError) {
                     Text(
                         text = phoneNumberErrorMessage,
+                        style = MaterialTheme.typography.labelSmall,
                         color = Color.Red
                     )
                 }
@@ -359,7 +328,7 @@ fun RegisterContent(
         OutlinedTextField(
             value = email,
             onValueChange = onEmailChange,
-            label = { Text("Alamat Email") },
+            label = { Text("Alamat Email", style = MaterialTheme.typography.labelMedium) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             modifier = Modifier.fillMaxWidth(),
@@ -377,6 +346,7 @@ fun RegisterContent(
                 if (isEmailError) {
                     Text(
                         text = emailErrorMessage,
+                        style = MaterialTheme.typography.labelSmall,
                         color = Color.Red
                     )
                 }
@@ -388,7 +358,7 @@ fun RegisterContent(
         OutlinedTextField(
             value = password,
             onValueChange = onPasswordChange,
-            label = { Text("Buat Password") },
+            label = { Text("Buat Password", style = MaterialTheme.typography.labelMedium) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -416,6 +386,7 @@ fun RegisterContent(
                 if (isPasswordError) {
                     Text(
                         text = passwordErrorMessage,
+                        style = MaterialTheme.typography.labelSmall,
                         color = Color.Red
                     )
                 }
@@ -427,7 +398,7 @@ fun RegisterContent(
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = onConfirmPasswordChange,
-            label = { Text("Konfirmasi Password") },
+            label = { Text("Konfirmasi Password", style = MaterialTheme.typography.labelMedium,) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -455,6 +426,7 @@ fun RegisterContent(
                 if (isConfirmPasswordError) {
                     Text(
                         text = confirmPasswordErrorMessage,
+                        style = MaterialTheme.typography.labelSmall,
                         color = Color.Red
                     )
                 }
@@ -473,11 +445,11 @@ fun RegisterContent(
         ) {
             Text(
                 text = "Daftar",
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Bold
+                )
             )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         Row(
             verticalAlignment = Alignment.CenterVertically
@@ -494,7 +466,7 @@ fun RegisterContent(
                 Text(
                     text = "Masuk",
                     color = PrimaryGold,
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
