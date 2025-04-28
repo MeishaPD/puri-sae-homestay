@@ -16,7 +16,9 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.compose.rememberNavController
 import brawijaya.example.purisaehomestay.ui.navigation.AppNavigation
 import brawijaya.example.purisaehomestay.ui.theme.PuriSaeHomestayTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

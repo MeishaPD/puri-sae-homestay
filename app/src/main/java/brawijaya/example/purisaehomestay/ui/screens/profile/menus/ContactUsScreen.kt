@@ -1,5 +1,6 @@
 package brawijaya.example.purisaehomestay.ui.screens.profile.menus
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +22,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -31,6 +33,7 @@ import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.profile.components.MenuItemWithIcon
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,6 +87,9 @@ fun ContactUsScreen(
 
 @Composable
 fun ContactUsContent() {
+
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier.padding(32.dp)
     ) {
@@ -93,7 +99,12 @@ fun ContactUsContent() {
         MenuItemWithIcon(
             icon = Icons.Rounded.Whatsapp,
             title = "Whatsapp",
-            onClick = {}
+            onClick = {
+                val phoneNumber = "6281334463644"
+                val url = "https://wa.me/$phoneNumber"
+                val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                context.startActivity(intent)
+            }
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -101,7 +112,12 @@ fun ContactUsContent() {
         MenuItemWithIcon(
             painter = painterResource(id = R.drawable.instagram),
             title = "Instagram",
-            onClick = {}
+            onClick = {
+                val uname = "purisaemalang"
+                val url = "https://instagram.com/$uname/"
+                val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                context.startActivity(intent)
+            }
         )
     }
 }

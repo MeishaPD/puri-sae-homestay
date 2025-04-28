@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,11 +27,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +50,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
@@ -53,8 +59,12 @@ import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
+
+    val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -63,7 +73,23 @@ fun LoginScreen(
     var emailErrorMessage by remember { mutableStateOf("") }
     var passwordErrorMessage by remember { mutableStateOf("") }
 
+    LaunchedEffect(uiState.isLoggedIn) {
+        if (uiState.isLoggedIn) {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Login.route) { inclusive = true }
+            }
+        }
+    }
+
+    LaunchedEffect(uiState.error) {
+        if (uiState.error.isNotEmpty()) {
+            snackbarHostState.showSnackbar(uiState.error)
+            viewModel.clearError()
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -103,68 +129,74 @@ fun LoginScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(innerPadding)
         ) {
-            LoginContent(
-                email = email,
-                onEmailChange = {
-                    email = it
-                    isEmailError = false
-                },
-                password = password,
-                onPasswordChange = {
-                    password = it
-                    isPasswordError = false
-                },
-                isEmailError = isEmailError,
-                isPasswordError = isPasswordError,
-                emailErrorMessage = emailErrorMessage,
-                passwordErrorMessage = passwordErrorMessage,
-                onLoginClick = {
-                    if (email.isEmpty()) {
-                        isEmailError = true
-                        emailErrorMessage = "Email/nomor telepon tidak boleh kosong"
-                    } else if (!isValidEmail(email)) {
-                        isEmailError = true
-                        emailErrorMessage = "Format email tidak valid"
-                    } else {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = PrimaryGold
+                )
+            } else {
+                LoginContent(
+                    email = email,
+                    onEmailChange = {
+                        email = it
                         isEmailError = false
-                    }
-
-                    if (password.isEmpty()) {
-                        isPasswordError = true
-                        passwordErrorMessage = "Password tidak boleh kosong"
-                    } else if (password.length < 6) {
-                        isPasswordError = true
-                        passwordErrorMessage = "Password minimal 6 karakter"
-                    } else {
+                    },
+                    password = password,
+                    onPasswordChange = {
+                        password = it
                         isPasswordError = false
-                    }
+                    },
+                    isEmailError = isEmailError,
+                    isPasswordError = isPasswordError,
+                    emailErrorMessage = emailErrorMessage,
+                    passwordErrorMessage = passwordErrorMessage,
+                    onLoginClick = {
+                        var isValid = true
 
-                    if (!isEmailError && !isPasswordError) {
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
+                        if (email.isEmpty()) {
+                            isEmailError = true
+                            emailErrorMessage = "Email/nomor telepon tidak boleh kosong"
+                            isValid = false
+                        } else if (!isValidEmail(email)) {
+                            isEmailError = true
+                            emailErrorMessage = "Format email/nomor telepon tidak valid"
+                            isValid = false
+                        }
+
+                        if (password.isEmpty()) {
+                            isPasswordError = true
+                            passwordErrorMessage = "Password tidak boleh kosong"
+                            isValid = false
+                        } else if (password.length < 6) {
+                            isPasswordError = true
+                            passwordErrorMessage = "Password minimal 6 karakter"
+                            isValid = false
+                        }
+
+                        if (isValid) {
+                            viewModel.signIn(email, password)
+                        }
+                    },
+                    onRegisterClick = {
+                        navController.navigate(Screen.Register.route)
+                    },
+                    onForgotPasswordClick = {
+                        if (email.isNotEmpty() && isValidEmail(email)) {
+                            viewModel.resetPassword(email)
+                        } else {
+                            isEmailError = true
+                            emailErrorMessage = "Masukkan email yang valid untuk reset password"
                         }
                     }
-                },
-                onRegisterClick = {
-                    navController.navigate(Screen.Register.route)
-                },
-                onForgotPasswordClick = {
-//                    navController?.navigate(Screen.ForgotPassword.route)
-                }
-            )
+                )
+            }
         }
-
     }
 }
 
 private fun isValidEmail(email: String): Boolean {
     val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"
-    return email.matches(emailRegex.toRegex()) || isValidPhoneNumber(email)
-}
-
-private fun isValidPhoneNumber(phone: String): Boolean {
-    val phoneRegex = "^[0-9]{10,13}$"
-    return phone.matches(phoneRegex.toRegex())
+    return email.matches(emailRegex.toRegex())
 }
 
 @Composable

@@ -25,11 +25,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +48,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
@@ -52,8 +57,13 @@ import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
+
+    val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
     var name by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -72,7 +82,23 @@ fun RegisterScreen(
     var passwordErrorMessage by remember { mutableStateOf("") }
     var confirmPasswordErrorMessage by remember { mutableStateOf("") }
 
+    LaunchedEffect(uiState.isLoggedIn) {
+        if (uiState.isLoggedIn) {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Register.route) { inclusive = true }
+            }
+        }
+    }
+
+    LaunchedEffect(uiState.error) {
+        if (uiState.error.isNotEmpty()) {
+            snackbarHostState.showSnackbar(uiState.error)
+            viewModel.clearError()
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -149,59 +175,56 @@ fun RegisterScreen(
                 passwordErrorMessage = passwordErrorMessage,
                 confirmPasswordErrorMessage = confirmPasswordErrorMessage,
                 onRegisterClick = {
+                    var isValid = true
 
                     if (name.isEmpty()) {
                         isNameError = true
                         nameErrorMessage = "Nama tidak boleh kosong"
-                    } else {
-                        isNameError = false
+                        isValid = false
                     }
 
                     if (phoneNumber.isEmpty()) {
                         isPhoneNumberError = true
                         phoneNumberErrorMessage = "Nomor telepon tidak boleh kosong"
+                        isValid = false
                     } else if (!isValidPhoneNumber(phoneNumber)) {
                         isPhoneNumberError = true
                         phoneNumberErrorMessage = "Format nomor telepon tidak valid"
-                    } else {
-                        isPhoneNumberError = false
+                        isValid = false
                     }
 
                     if (email.isEmpty()) {
                         isEmailError = true
                         emailErrorMessage = "Email tidak boleh kosong"
+                        isValid = false
                     } else if (!isValidEmail(email)) {
                         isEmailError = true
                         emailErrorMessage = "Format email tidak valid"
-                    } else {
-                        isEmailError = false
+                        isValid = false
                     }
 
                     if (password.isEmpty()) {
                         isPasswordError = true
                         passwordErrorMessage = "Password tidak boleh kosong"
+                        isValid = false
                     } else if (password.length < 6) {
                         isPasswordError = true
                         passwordErrorMessage = "Password minimal 6 karakter"
-                    } else {
-                        isPasswordError = false
+                        isValid = false
                     }
 
                     if (confirmPassword.isEmpty()) {
                         isConfirmPasswordError = true
                         confirmPasswordErrorMessage = "Konfirmasi password tidak boleh kosong"
+                        isValid = false
                     } else if (confirmPassword != password) {
                         isConfirmPasswordError = true
                         confirmPasswordErrorMessage = "Password tidak cocok"
-                    } else {
-                        isConfirmPasswordError = false
+                        isValid = false
                     }
 
-                    if (!isNameError && !isPhoneNumberError &&
-                        !isEmailError && !isPasswordError && !isConfirmPasswordError) {
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(Screen.Register.route) { inclusive = true }
-                        }
+                    if (isValid) {
+                        viewModel.signUp(email, password, name, phoneNumber)
                     }
                 },
                 onLoginClick = {
@@ -398,7 +421,7 @@ fun RegisterContent(
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = onConfirmPasswordChange,
-            label = { Text("Konfirmasi Password", style = MaterialTheme.typography.labelMedium,) },
+            label = { Text("Konfirmasi Password", style = MaterialTheme.typography.labelMedium) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),

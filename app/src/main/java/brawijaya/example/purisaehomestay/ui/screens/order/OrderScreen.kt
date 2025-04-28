@@ -1,5 +1,6 @@
 package brawijaya.example.purisaehomestay.ui.screens.order
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -11,9 +12,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -173,6 +179,9 @@ fun OrderScreenContent(
     checkOutError: String? = null
 ) {
 
+    val dropdownExpanded = remember { mutableStateOf(false) }
+    val selectedPaymentOption = remember { mutableStateOf("Jenis Pembayaran") }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -266,7 +275,7 @@ fun OrderScreenContent(
                 label = { Text("Jumlah Tamu", style = MaterialTheme.typography.labelSmall) },
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Rounded.Person,
+                        imageVector = Icons.Outlined.Person,
                         contentDescription = "Jumlah Tamu",
                         tint = PrimaryGold
                     )
@@ -293,6 +302,79 @@ fun OrderScreenContent(
                 modifier = Modifier.fillMaxWidth()
                     .padding(bottom = 8.dp)
             )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+            ) {
+                OutlinedTextField(
+                    value = selectedPaymentOption.value,
+                    onValueChange = { },
+                    readOnly = true,
+                    enabled = false,
+                    label = { Text("Jenis Pembayaran", style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Outlined.CreditCard,
+                            contentDescription = "Jenis Pembayaran",
+                            tint = PrimaryGold
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
+                        focusedBorderColor = PrimaryGold,
+                        unfocusedLabelColor = Color.LightGray,
+                        focusedLabelColor = Color.Black,
+                        disabledBorderColor = PrimaryGold.copy(alpha = 0.5f),
+                        disabledLabelColor = Color.LightGray,
+                        disabledTextColor = Color.Black,
+                        disabledContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    trailingIcon = {
+                        IconButton(onClick = { dropdownExpanded.value = true }) {
+                            Icon(
+                                imageVector = Icons.Rounded.KeyboardArrowDown,
+                                contentDescription = "Dropdown",
+                                tint = PrimaryGold
+                            )
+                        }
+                    },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { dropdownExpanded.value = true }
+                        .padding(bottom = 16.dp)
+                )
+
+                DropdownMenu(
+                    expanded = dropdownExpanded.value,
+                    onDismissRequest = { dropdownExpanded.value = false },
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .align(Alignment.TopCenter)
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text("Pembayaran DP 25%")
+                        },
+                        onClick = {
+                            selectedPaymentOption.value = "Pembayaran DP 25%"
+                            dropdownExpanded.value = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text("Pembayaran Lunas")
+                        },
+                        onClick = {
+                            selectedPaymentOption.value = "Pembayaran Lunas"
+                            dropdownExpanded.value = false
+                        }
+                    )
+                }
+            }
 
             Button(
                 colors = ButtonDefaults.buttonColors(PrimaryGold),

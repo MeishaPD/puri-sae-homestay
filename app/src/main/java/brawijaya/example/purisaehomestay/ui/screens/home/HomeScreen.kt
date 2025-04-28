@@ -3,6 +3,7 @@ package brawijaya.example.purisaehomestay.ui.screens.home
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,7 +41,6 @@ import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.components.BottomNavigation
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
-import brawijaya.example.purisaehomestay.ui.theme.LightGreyBg
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.theme.Typography
 
@@ -106,7 +106,8 @@ fun HomeScreen(
                 Image(
                     painter = painterResource(id = R.drawable.logo_side_text),
                     contentDescription = "Puri Sae Malang Logo",
-                    modifier = Modifier.padding(start = 2.dp),
+                    modifier = Modifier.padding(start = 2.dp)
+                        .width(218.dp).height(72.dp),
                     contentScale = ContentScale.Fit
                 )
             }
@@ -118,6 +119,9 @@ fun HomeScreen(
 fun HomeScreenContent(
     navController: NavController
 ) {
+
+    var imagesCount = 3
+
     Column {
         Image(
             painter = painterResource(id = R.drawable.homestay_image),
@@ -159,7 +163,7 @@ fun HomeScreenContent(
                     .padding(bottom = 16.dp)
                     .horizontalScroll(rememberScrollState())
             ) {
-                repeat(5){
+                repeat(5) {
                     Box(
                         modifier = Modifier
                             .width(240.dp)
@@ -190,13 +194,121 @@ fun HomeScreenContent(
                     modifier = Modifier.padding(vertical = 4.dp),
                     style = MaterialTheme.typography.bodySmall
                 )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .padding(vertical = 4.dp)
-                        .background(Color.LightGray),
-                )
+
+                if (imagesCount == 4) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(120.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color.LightGray)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(120.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color.LightGray)
+                            )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(120.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color.LightGray)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(120.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color.LightGray)
+                            )
+                        }
+                    }
+                } else if (imagesCount == 3) {
+
+                    Image(
+                        painter = painterResource(id = R.drawable.bungalow_group),
+                        contentDescription = "Image 1",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp)
+                            .padding(top = 4.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        contentScale = ContentScale.FillWidth
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.bungalow_single),
+                            contentDescription = "Image 2",
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(120.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                            contentScale = ContentScale.FillWidth
+                        )
+                        Image(
+                            painter = painterResource(id = R.drawable.landscape_view),
+                            contentDescription = "Image 2",
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(120.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                            contentScale = ContentScale.FillWidth
+                        )
+                    }
+                } else if (imagesCount == 2) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(170.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color.LightGray)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(170.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color.LightGray)
+                        )
+                    }
+                } else if (imagesCount == 1) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(340.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color.LightGray)
+                    )
+                }
 
                 Spacer(modifier = Modifier.padding(8.dp))
                 HorizontalDivider()
