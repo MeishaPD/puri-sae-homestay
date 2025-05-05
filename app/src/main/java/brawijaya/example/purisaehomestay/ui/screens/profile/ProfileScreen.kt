@@ -129,7 +129,7 @@ fun ProfileScreen(
                 ProfileContent(
                     navController = navController,
                     uiState = uiState,
-                    onSignOut = { viewModel.signOut() }
+                    onSignOut = { viewModel.signOut() },
                 )
             }
         }
@@ -140,11 +140,11 @@ fun ProfileScreen(
 fun ProfileContent(
     navController: NavController,
     uiState: ProfileUiState,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     val isLoggedIn = uiState.isLoggedIn
-    val isAdmin = uiState.userData?.role == "Admin"
+    val isAdmin = uiState.isAdmin
     val context = LocalContext.current
 
     Column(modifier = Modifier.padding(32.dp)) {
@@ -234,7 +234,9 @@ fun ProfileContent(
                 MenuItemWithIcon(
                     painter = painterResource(id = R.drawable.overview),
                     title = "Aktivitas Saya",
-                    onClick = {}
+                    onClick = {
+                        navController.navigate(Screen.Activities.route)
+                    }
                 )
                 MenuItemWithIcon(
                     icon = Icons.Rounded.QuestionAnswer,
@@ -263,7 +265,9 @@ fun ProfileContent(
                 MenuItemWithIcon(
                     icon = Icons.Rounded.Info,
                     title = "Informasi Akun",
-                    onClick = {}
+                    onClick = {
+                        navController.navigate(Screen.Info.route)
+                    }
                 )
                 MenuItemWithIcon(
                     icon = Icons.AutoMirrored.Rounded.Logout,

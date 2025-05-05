@@ -17,10 +17,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -103,13 +107,33 @@ fun HomeScreen(
                     .statusBarsPadding()
                     .zIndex(2f)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_side_text),
-                    contentDescription = "Puri Sae Malang Logo",
-                    modifier = Modifier.padding(start = 2.dp)
-                        .width(218.dp).height(72.dp),
-                    contentScale = ContentScale.Fit
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.logo_side_text),
+                        contentDescription = "Puri Sae Malang Logo",
+                        modifier = Modifier
+                            .padding(start = 2.dp)
+                            .width(218.dp)
+                            .height(72.dp),
+                        contentScale = ContentScale.Fit
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    IconButton(
+                        onClick = { navController.navigate(Screen.Notification.route) }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Notifications,
+                            modifier = Modifier.padding(end = 14.dp),
+                            contentDescription = "Notifikasi",
+                            tint = PrimaryGold
+
+                        )
+                    }
+                }
             }
         }
     }

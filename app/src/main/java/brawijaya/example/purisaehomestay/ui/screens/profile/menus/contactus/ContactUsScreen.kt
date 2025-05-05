@@ -1,4 +1,4 @@
-package brawijaya.example.purisaehomestay.ui.screens.profile.menus
+package brawijaya.example.purisaehomestay.ui.screens.profile.menus.contactus
 
 import android.content.Intent
 import androidx.compose.foundation.layout.Box

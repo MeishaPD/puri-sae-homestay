@@ -17,6 +17,7 @@ data class ProfileUiState(
     val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
     val userData: UserData? = null,
+    val isAdmin: Boolean = false,
     val error: String = ""
 )
 
@@ -48,6 +49,7 @@ class ProfileViewModel @Inject constructor(
 
             try {
                 val userData = userRepository.getCurrentUserData()
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -55,6 +57,8 @@ class ProfileViewModel @Inject constructor(
                         isLoggedIn = userData != null
                     )
                 }
+
+                isUserAdmin()
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -70,6 +74,14 @@ class ProfileViewModel @Inject constructor(
         authRepository.signOut()
         _uiState.update { state ->
             state.copy(isLoggedIn = false, userData = null)
+        }
+    }
+
+    fun isUserAdmin() {
+        if (userRepository.isUserAdmin()) {
+            _uiState.update { state ->
+                state.copy(isAdmin = true)
+            }
         }
     }
 

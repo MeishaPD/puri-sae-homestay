@@ -155,11 +155,11 @@ fun LoginScreen(
 
                         if (email.isEmpty()) {
                             isEmailError = true
-                            emailErrorMessage = "Email/nomor telepon tidak boleh kosong"
+                            emailErrorMessage = "Email tidak boleh kosong"
                             isValid = false
                         } else if (!isValidEmail(email)) {
                             isEmailError = true
-                            emailErrorMessage = "Format email/nomor telepon tidak valid"
+                            emailErrorMessage = "Format email tidak valid"
                             isValid = false
                         }
 
@@ -225,7 +225,7 @@ fun LoginContent(
         OutlinedTextField(
             value = email,
             onValueChange = onEmailChange,
-            label = { Text("Alamat email/nomor telepon") },
+            label = { Text("Alamat email") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             modifier = Modifier.fillMaxWidth(),

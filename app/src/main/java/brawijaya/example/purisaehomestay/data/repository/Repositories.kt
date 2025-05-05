@@ -1,6 +1,6 @@
 package brawijaya.example.purisaehomestay.data.repository
 
-import com.google.firebase.auth.EmailAuthProvider
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.UserProfileChangeRequest
@@ -9,7 +9,14 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 import androidx.core.net.toUri
+import brawijaya.example.purisaehomestay.data.model.NewsData
+import brawijaya.example.purisaehomestay.data.model.NotificationData
+import brawijaya.example.purisaehomestay.data.model.NotificationType
+import brawijaya.example.purisaehomestay.data.model.PromoData
 import brawijaya.example.purisaehomestay.data.model.UserData
+import brawijaya.example.purisaehomestay.data.model.UserNotification
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -170,6 +177,7 @@ class UserRepository @Inject constructor(
                 email = firebaseUser.email ?: "",
                 role = "Penyewa"
             )
+            Log.w(e.toString(), "Error getting current user data:")
         }
     }
 
@@ -182,5 +190,519 @@ class UserRepository @Inject constructor(
 
     fun isUserAdmin(): Boolean {
         return _userData.value?.role == "Admin"
+    }
+}
+
+class DataRepository(private val db: FirebaseFirestore = FirebaseFirestore.getInstance()) {
+
+    companion object {
+        private const val TAG = "DataRepository"
+    }
+
+    // Collection references
+    private val newsRef = db.collection("news")
+    private val promoRef = db.collection("promo")
+    private val usersRef = db.collection("users")
+    private val notificationsRef = db.collection("notifications")
+    private val userNotificationsRef = db.collection("userNotifications")
+
+    // Get all news
+    suspend fun getAllNews(): Result<List<NewsData>> {
+        return try {
+            val snapshot = newsRef.orderBy("createdAt", Query.Direction.DESCENDING).get().await()
+            val newsDataList = snapshot.documents.map { doc ->
+                NewsData(
+                    id = doc.id,
+                    title = doc.getString("title") ?: "",
+                    description = doc.getString("description") ?: "",
+                    imageUrl = doc.getString("imageUrl"),
+                    createdAt = doc.getTimestamp("createdAt") ?: Timestamp.now(),
+                    updatedAt = doc.getTimestamp("updatedAt") ?: Timestamp.now(),
+                    isRead = doc.getBoolean("isRead") ?: false
+                )
+            }
+            Result.Success(newsDataList)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get news", e)
+            Result.Error("Failed to get news: ${e.message}")
+        }
+    }
+
+    // Get all active promos
+    suspend fun getActivePromos(): Result<List<PromoData>> {
+        return try {
+            val currentTime = Timestamp.now()
+            val snapshot = promoRef
+                .whereEqualTo("promoStatus", true)
+                .whereLessThanOrEqualTo("startDate", currentTime)
+                .whereGreaterThanOrEqualTo("endsDate", currentTime)
+                .orderBy("startDate", Query.Direction.ASCENDING)
+                .orderBy("endsDate", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            val promoDataList = snapshot.documents.map { doc ->
+                val applicablePackages = doc.get("applicablePackageIds") as? List<Map<String, Any>> ?: emptyList()
+
+                PromoData(
+                    id = doc.id,
+                    applicablePackageIds = applicablePackages,
+                    isActive = doc.getBoolean("promoStatus") ?: false,
+                    startDate = doc.getTimestamp("startDate") ?: Timestamp.now(),
+                    endDate = doc.getTimestamp("endsDate") ?: Timestamp.now(),
+                    description = doc.getString("description") ?: "",
+                    createdAt = doc.getTimestamp("createdAt") ?: Timestamp.now(),
+                    discountAmount = doc.getDouble("discountAmount") ?: 0.0,
+                    discountType = doc.getString("discountType") ?: "percentage",
+                    minBookings = doc.getLong("minBookings")?.toInt() ?: 1,
+                    updatedAt = doc.getTimestamp("updatedAt") ?: Timestamp.now(),
+                    isRead = doc.getBoolean("isRead") ?: false
+                )
+            }
+            Result.Success(promoDataList)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get active promos", e)
+            Result.Error("Failed to get active promos: ${e.message}")
+        }
+    }
+
+    // Get user by ID
+    suspend fun getUserById(userId: String): Result<UserData> {
+        return try {
+            val userDoc = usersRef.document(userId).get().await()
+            if (userDoc.exists()) {
+                val user = UserData(
+                    id = userDoc.id,
+                    name = userDoc.getString("name") ?: "",
+                    email = userDoc.getString("email") ?: "",
+                    phoneNumber  = userDoc.getString("phoneNumber") ?: "",
+                    role = userDoc.getString("role") ?: "guest",
+                )
+                Result.Success(user)
+            } else {
+                Result.Error("User not found")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get user", e)
+            Result.Error("Failed to get user: ${e.message}")
+        }
+    }
+
+    // Get all users
+    suspend fun getAllUsers(): Result<List<UserData>> {
+        return try {
+            val snapshot = usersRef.get().await()
+            val userList = snapshot.documents.map { doc ->
+                UserData(
+                    id = doc.id,
+                    name = doc.getString("name") ?: "",
+                    email = doc.getString("email") ?: "",
+                    phoneNumber = doc.getString("phoneNumber") ?: "",
+                    role = doc.getString("role") ?: "guest",
+                )
+            }
+            Result.Success(userList)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get users", e)
+            Result.Error("Failed to get users: ${e.message}")
+        }
+    }
+
+    // Create news
+    suspend fun createNews(newsData: NewsData): Result<String> {
+        return try {
+            val newsMap = hashMapOf(
+                "title" to newsData.title,
+                "description" to newsData.description,
+                "imageUrl" to newsData.imageUrl,
+                "createdAt" to newsData.createdAt,
+                "updatedAt" to (newsData.updatedAt ?: Timestamp.now()),
+                "isRead" to newsData.isRead
+            )
+
+            val documentRef = newsRef.add(newsMap).await()
+            Result.Success(documentRef.id)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create news", e)
+            Result.Error("Failed to create news: ${e.message}")
+        }
+    }
+
+    // Create promo
+    suspend fun createPromo(promoData: PromoData): Result<String> {
+        return try {
+            val promoMap = hashMapOf(
+                "applicablePackageIds" to promoData.applicablePackageIds,
+                "promoStatus" to promoData.isActive,
+                "startDate" to promoData.startDate,
+                "endsDate" to promoData.endDate,
+                "description" to promoData.description,
+                "createdAt" to (promoData.createdAt ?: Timestamp.now()),
+                "discountAmount" to promoData.discountAmount,
+                "discountType" to promoData.discountType,
+                "minBookings" to promoData.minBookings,
+                "updatedAt" to (promoData.updatedAt ?: Timestamp.now()),
+                "isRead" to promoData.isRead
+            )
+
+            val documentRef = promoRef.add(promoMap).await()
+            Result.Success(documentRef.id)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create promo", e)
+            Result.Error("Failed to create promo: ${e.message}")
+        }
+    }
+
+    // Mark news as read
+    suspend fun markNewsAsRead(newsId: String): Result<Boolean> {
+        return try {
+            newsRef.document(newsId).update("is_read", true).await()
+            Result.Success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to mark news as read", e)
+            Result.Error("Failed to mark news as read: ${e.message}")
+        }
+    }
+
+    // Mark promo as read
+    suspend fun markPromoAsRead(promoId: String): Result<Boolean> {
+        return try {
+            promoRef.document(promoId).update("is_read", true).await()
+            Result.Success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to mark promo as read", e)
+            Result.Error("Failed to mark promo as read: ${e.message}")
+        }
+    }
+
+    // ---------- Notification Methods ----------
+
+    /**
+     * Get all notifications
+     */
+    suspend fun getAllNotifications(): Result<List<NotificationData>> {
+        return try {
+            val snapshot = notificationsRef
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            val notificationList = snapshot.documents.map { doc ->
+                NotificationData(
+                    id = doc.id,
+                    type = NotificationType.valueOf(doc.getString("type") ?: NotificationType.NEWS.name),
+                    title = doc.getString("title") ?: "",
+                    description = doc.getString("description") ?: "",
+                    imageUrl = doc.getString("imageUrl"),
+                    createdAt = doc.getTimestamp("createdAt") ?: Timestamp.now(),
+                    referenceId = doc.getString("referenceId") ?: "",
+                    isActive = doc.getBoolean("isActive") ?: true
+                )
+            }
+            Result.Success(notificationList)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get all notifications", e)
+            Result.Error("Failed to get all notifications: ${e.message}")
+        }
+    }
+
+    /**
+     * Get notification by ID
+     */
+    suspend fun getNotificationById(notificationId: String): Result<NotificationData> {
+        return try {
+            val doc = notificationsRef.document(notificationId).get().await()
+            if (doc.exists()) {
+                val notification = NotificationData(
+                    id = doc.id,
+                    type = NotificationType.valueOf(doc.getString("type") ?: NotificationType.NEWS.name),
+                    title = doc.getString("title") ?: "",
+                    description = doc.getString("description") ?: "",
+                    imageUrl = doc.getString("imageUrl"),
+                    createdAt = doc.getTimestamp("createdAt") ?: Timestamp.now(),
+                    referenceId = doc.getString("referenceId") ?: "",
+                    isActive = doc.getBoolean("isActive") ?: true
+                )
+                Result.Success(notification)
+            } else {
+                Result.Error("Notification not found")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get notification by ID", e)
+            Result.Error("Failed to get notification: ${e.message}")
+        }
+    }
+
+    /**
+     * Get all notifications for a specific user
+     */
+    suspend fun getUserNotifications(userId: String): Result<List<Pair<NotificationData, UserNotification>>> {
+        return try {
+            val userNotificationsQuery = userNotificationsRef
+                .whereEqualTo("userId", userId)
+                .orderBy("isRead")
+                .orderBy("notificationId", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            val userNotifications = userNotificationsQuery.documents.mapNotNull { doc ->
+                val userNotification = UserNotification(
+                    id = doc.id,
+                    userId = doc.getString("userId") ?: "",
+                    notificationId = doc.getString("notificationId") ?: "",
+                    isRead = doc.getBoolean("isRead") ?: false,
+                    readAt = doc.getTimestamp("readAt")
+                )
+                userNotification
+            }
+
+            val notificationDataPairs = mutableListOf<Pair<NotificationData, UserNotification>>()
+
+            for (userNotification in userNotifications) {
+                val notificationDoc = notificationsRef.document(userNotification.notificationId).get().await()
+                if (notificationDoc.exists()) {
+                    val notificationData = NotificationData(
+                        id = notificationDoc.id,
+                        type = NotificationType.valueOf(notificationDoc.getString("type") ?: NotificationType.NEWS.name),
+                        title = notificationDoc.getString("title") ?: "",
+                        description = notificationDoc.getString("description") ?: "",
+                        imageUrl = notificationDoc.getString("imageUrl"),
+                        createdAt = notificationDoc.getTimestamp("createdAt") ?: Timestamp.now(),
+                        referenceId = notificationDoc.getString("referenceId") ?: "",
+                        isActive = notificationDoc.getBoolean("isActive") ?: true
+                    )
+                    notificationDataPairs.add(Pair(notificationData, userNotification))
+                }
+            }
+
+            Result.Success(notificationDataPairs)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get user notifications", e)
+            Result.Error("Failed to get user notifications: ${e.message}")
+        }
+    }
+
+    /**
+     * Create a new notification
+     */
+    suspend fun createNotification(notificationData: NotificationData): Result<String> {
+        return try {
+            val notificationMap = hashMapOf(
+                "type" to notificationData.type.name,
+                "title" to notificationData.title,
+                "description" to notificationData.description,
+                "imageUrl" to notificationData.imageUrl,
+                "createdAt" to (notificationData.createdAt ?: Timestamp.now()),
+                "referenceId" to notificationData.referenceId,
+                "isActive" to notificationData.isActive
+            )
+
+            val documentRef = notificationsRef.add(notificationMap).await()
+            Result.Success(documentRef.id)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create notification", e)
+            Result.Error("Failed to create notification: ${e.message}")
+        }
+    }
+
+    /**
+     * Send notification to a specific user
+     */
+    suspend fun sendNotificationToUser(userId: String, notificationId: String): Result<String> {
+        return try {
+            val userNotificationMap = hashMapOf(
+                "userId" to userId,
+                "notificationId" to notificationId,
+                "isRead" to false,
+                "readAt" to null,
+                "createdAt" to Timestamp.now()
+            )
+
+            val documentRef = userNotificationsRef.add(userNotificationMap).await()
+            Result.Success(documentRef.id)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send notification to user", e)
+            Result.Error("Failed to send notification to user: ${e.message}")
+        }
+    }
+
+    /**
+     * Send notification to all users
+     */
+    suspend fun sendNotificationToAllUsers(userIds: List<String>, notificationId: String): Result<Boolean> {
+        return try {
+            for (userId in userIds) {
+                val userNotificationMap = hashMapOf(
+                    "userId" to userId,
+                    "notificationId" to notificationId,
+                    "isRead" to false,
+                    "readAt" to null,
+                    "createdAt" to Timestamp.now()
+                )
+                userNotificationsRef.add(userNotificationMap).await()
+            }
+            Result.Success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send notification to all users", e)
+            Result.Error("Failed to send notification to all users: ${e.message}")
+        }
+    }
+
+    /**
+     * Mark notification as read
+     */
+    suspend fun markNotificationAsRead(userNotificationId: String): Result<Boolean> {
+        return try {
+            userNotificationsRef.document(userNotificationId).update(
+                mapOf(
+                    "isRead" to true,
+                    "readAt" to Timestamp.now()
+                )
+            ).await()
+            Result.Success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to mark notification as read", e)
+            Result.Error("Failed to mark notification as read: ${e.message}")
+        }
+    }
+
+    /**
+     * Get unread notifications count
+     */
+    suspend fun getUnreadNotificationsCount(userId: String): Result<Int> {
+        return try {
+            val query = userNotificationsRef
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("isRead", false)
+                .get()
+                .await()
+
+            Result.Success(query.size())
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get unread notifications count", e)
+            Result.Error("Failed to get unread notifications count: ${e.message}")
+        }
+    }
+
+    /**
+     * Delete a notification
+     */
+    suspend fun deleteNotification(notificationId: String): Result<Boolean> {
+        return try {
+            notificationsRef.document(notificationId).delete().await()
+
+            // Delete all user notifications for this notification
+            val userNotificationsQuery = userNotificationsRef
+                .whereEqualTo("notificationId", notificationId)
+                .get()
+                .await()
+
+            for (doc in userNotificationsQuery.documents) {
+                userNotificationsRef.document(doc.id).delete().await()
+            }
+
+            Result.Success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete notification", e)
+            Result.Error("Failed to delete notification: ${e.message}")
+        }
+    }
+
+    /**
+     * Create a promo notification and send to all users
+     */
+    suspend fun createPromoNotificationAndSendToAll(
+        promoId: String,
+        title: String,
+        description: String,
+        imageUrl: String? = null
+    ): Result<Boolean> {
+        return try {
+            // Create notification
+            val notificationData = NotificationData(
+                type = NotificationType.PROMO,
+                title = title,
+                description = description,
+                imageUrl = imageUrl,
+                createdAt = Timestamp.now(),
+                referenceId = promoId,
+                isActive = true
+            )
+
+            val notificationResult = createNotification(notificationData)
+            if (notificationResult is Result.Error) {
+                return notificationResult
+            }
+
+            val notificationId = (notificationResult as Result.Success).data
+
+            // Get all users
+            val usersResult = getAllUsers()
+            if (usersResult is Result.Error) {
+                return Result.Error(usersResult.message)
+            }
+
+            val userIds = (usersResult as Result.Success).data.map { it.id }
+
+            // Send to all users
+            val sendResult = sendNotificationToAllUsers(userIds, notificationId)
+            if (sendResult is Result.Error) {
+                return sendResult
+            }
+
+            Result.Success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create and send promo notification", e)
+            Result.Error("Failed to create and send promo notification: ${e.message}")
+        }
+    }
+
+    /**
+     * Create a news notification and send to all users
+     */
+    suspend fun createNewsNotificationAndSendToAll(
+        newsId: String,
+        title: String,
+        description: String,
+        imageUrl: String? = null
+    ): Result<Boolean> {
+        return try {
+            // Create notification
+            val notificationData = NotificationData(
+                type = NotificationType.NEWS,
+                title = title,
+                description = description,
+                imageUrl = imageUrl,
+                createdAt = Timestamp.now(),
+                referenceId = newsId,
+                isActive = true
+            )
+
+            val notificationResult = createNotification(notificationData)
+            if (notificationResult is Result.Error) {
+                return notificationResult
+            }
+
+            val notificationId = (notificationResult as Result.Success).data
+
+            // Get all users
+            val usersResult = getAllUsers()
+            if (usersResult is Result.Error) {
+                return Result.Error(usersResult.message)
+            }
+
+            val userIds = (usersResult as Result.Success).data.map { it.id }
+
+            // Send to all users
+            val sendResult = sendNotificationToAllUsers(userIds, notificationId)
+            if (sendResult is Result.Error) {
+                return sendResult
+            }
+
+            Result.Success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create and send news notification", e)
+            Result.Error("Failed to create and send news notification: ${e.message}")
+        }
     }
 }

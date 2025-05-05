@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.R
+import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.ui.components.BottomNavigation
 import brawijaya.example.purisaehomestay.ui.components.DateRangePicker
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
@@ -110,7 +111,9 @@ fun OrderScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = {
+                        navController.navigate(Screen.Activities.route)
+                    }) {
                         Icon(
                             modifier = Modifier.padding(end = 8.dp),
                             painter = painterResource(id = R.drawable.overview),
@@ -182,6 +185,52 @@ fun OrderScreenContent(
     val dropdownExpanded = remember { mutableStateOf(false) }
     val selectedPaymentOption = remember { mutableStateOf("Jenis Pembayaran") }
 
+    val paketList = remember {
+        listOf(
+            Paket(
+                id = 1,
+                title = "Sewa Bungalow",
+                features = listOf(
+                    "2 Lantai",
+                    "Kapasitas 4-6 Orang",
+                    "Wifi, AC dan Air Panas",
+                    "Kolam Renang"
+                ),
+                weekdayPrice = 500000.0,
+                weekendPrice = 550000.0,
+                imageUrl = R.drawable.bungalow_single
+            ),
+            Paket(
+                id = 2,
+                title = "Paket Rombongan (sampai 20 orang)",
+                features = listOf(
+                    "3 Bungalow",
+                    "Free 3 Ekstra Bed",
+                    "Dapur, Wifi, AC dan Air Panas",
+                    "Kolam Renang",
+                    "Joglo (Karaoke)"
+                ),
+                weekdayPrice = 2000000.0,
+                weekendPrice = 2150000.0,
+                imageUrl = R.drawable.bungalow_group
+            ),
+            Paket(
+                id = 3,
+                title = "Paket Venue Wedding",
+                features = listOf(
+                    "Bungalow",
+                    "Joglo Utama",
+                    "Dapur",
+                    "Area Makan",
+                    "Kolam Renang"
+                ),
+                weekdayPrice = 7000000.0,
+                weekendPrice = 0.0,
+                imageUrl = R.drawable.wedding_venue
+            )
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -213,59 +262,17 @@ fun OrderScreenContent(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            PackageCard(
-                number = "1",
-                title = "Sewa Bungalow",
-                features = listOf(
-                    "2 Lantai",
-                    "Kapasitas 4-6 Orang",
-                    "Wifi, AC dan Air Panas",
-                    "Kolam Renang"
-                ),
-                weekdayPrice = "Rp 500.000/malam (weekday)",
-                weekendPrice = "Rp 550.000 (weekend/holiday)",
-                imageRes = R.drawable.bungalow_single,
-                isSelected = selectedPackage == 1,
-                onSelect = { onPackageSelected(1) }
-            )
+            paketList.forEachIndexed { index, paket ->
+                PackageCard(
+                    paket = paket,
+                    isSelected = selectedPackage == paket.id,
+                    onSelect = { onPackageSelected(paket.id) }
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            PackageCard(
-                number = "2",
-                title = "Paket Rombongan (sampai 20 orang)",
-                features = listOf(
-                    "3 Bungalow",
-                    "Free 3 Ekstra Bed",
-                    "Dapur, Wifi, AC dan Air Panas",
-                    "Kolam Renang",
-                    "Joglo (Karaoke)"
-                ),
-                weekdayPrice = "Rp 2.000.000/malam (weekday)",
-                weekendPrice = "Rp 2.150.000 (weekend/holiday)",
-                imageRes = R.drawable.bungalow_group,
-                isSelected = selectedPackage == 2,
-                onSelect = { onPackageSelected(2) }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            PackageCard(
-                number = "3",
-                title = "Paket Venue Wedding",
-                features = listOf(
-                    "Bungalow",
-                    "Joglo Utama",
-                    "Dapur",
-                    "Area Makan",
-                    "Kolam Renang"
-                ),
-                weekdayPrice = "Rp 7.000.000 ( half day 07.00-14.00 )",
-                weekendPrice = "",
-                imageRes = R.drawable.wedding_venue,
-                isSelected = selectedPackage == 3,
-                onSelect = { onPackageSelected(3) }
-            )
+                if (index < paketList.lastIndex) {
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -418,7 +425,7 @@ fun OrderScreenContent(
                 )
 
                 Text(
-                    text = "3. check-in atau check-out di luar jam di atas harus dengan perjanjian sebelumnya.",
+                    text = "3. Check-in atau check-out di luar jam di atas harus dengan perjanjian sebelumnya.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
