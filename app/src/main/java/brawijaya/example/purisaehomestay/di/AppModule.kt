@@ -1,5 +1,6 @@
 package brawijaya.example.purisaehomestay.di
 
+import brawijaya.example.purisaehomestay.data.repository.PackageRepository
 import brawijaya.example.purisaehomestay.data.repository.AuthRepository
 import brawijaya.example.purisaehomestay.data.repository.AuthRepositoryImpl
 import brawijaya.example.purisaehomestay.data.repository.UserRepository
@@ -40,8 +41,16 @@ object AppModule {
     @Singleton
     fun provideUserRepository(
         auth: FirebaseAuth,
-        database: FirebaseFirestore
+        firestore: FirebaseFirestore
     ): UserRepository {
-        return UserRepository(auth, database)
+        return UserRepository(auth, firestore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAdminRepository(
+        firestore: FirebaseFirestore
+    ): PackageRepository {
+        return PackageRepository(firestore)
     }
 }

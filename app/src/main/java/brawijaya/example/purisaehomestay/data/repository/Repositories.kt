@@ -9,14 +9,17 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 import androidx.core.net.toUri
+import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.NewsData
 import brawijaya.example.purisaehomestay.data.model.NotificationData
 import brawijaya.example.purisaehomestay.data.model.NotificationType
+import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.data.model.PromoData
 import brawijaya.example.purisaehomestay.data.model.UserData
 import brawijaya.example.purisaehomestay.data.model.UserNotification
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -704,5 +707,116 @@ class DataRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIn
             Log.e(TAG, "Failed to create and send news notification", e)
             Result.Error("Failed to create and send news notification: ${e.message}")
         }
+    }
+}
+
+/**
+ * Repository untuk mengelola paket-paket penginapan
+ * Sementara menggunakan local variable sebagai sumber data
+ */
+class PackageRepository @Inject constructor(
+    private val db: FirebaseFirestore
+) {
+
+    private val _packages = MutableStateFlow<List<Paket>>(getInitialPaketList())
+    val packages: Flow<List<Paket>> = _packages.asStateFlow()
+
+    /**
+     * Mendapatkan daftar paket awal
+     */
+    private fun getInitialPaketList(): List<Paket> {
+        return listOf(
+            Paket(
+                id = 1,
+                title = "Sewa Bungalow",
+                features = listOf(
+                    "2 Lantai",
+                    "Kapasitas 4-6 Orang",
+                    "Wifi, AC dan Air Panas",
+                    "Kolam Renang"
+                ),
+                weekdayPrice = 500000.0,
+                weekendPrice = 550000.0,
+                imageUrl = R.drawable.bungalow_single
+            ),
+            Paket(
+                id = 2,
+                title = "Paket Rombongan (sampai 20 orang)",
+                features = listOf(
+                    "3 Bungalow",
+                    "Free 3 Ekstra Bed",
+                    "Dapur, Wifi, AC dan Air Panas",
+                    "Kolam Renang",
+                    "Joglo (Karaoke)"
+                ),
+                weekdayPrice = 2000000.0,
+                weekendPrice = 2150000.0,
+                imageUrl = R.drawable.bungalow_group
+            ),
+            Paket(
+                id = 3,
+                title = "Paket Venue Wedding",
+                features = listOf(
+                    "Bungalow",
+                    "Joglo Utama",
+                    "Dapur",
+                    "Area Makan",
+                    "Kolam Renang"
+                ),
+                weekdayPrice = 7000000.0,
+                weekendPrice = 7500000.0,
+                imageUrl = R.drawable.wedding_venue
+            )
+        )
+    }
+
+    /**
+     * Membuat paket baru
+     */
+    suspend fun createPackage(paket: Paket) {
+        val currentList = _packages.value.toMutableList()
+
+        if (currentList.any { it.id == paket.id }) {
+            return
+        }
+
+        currentList.add(paket)
+        _packages.value = currentList
+    }
+
+    /**
+     * Mengambil paket berdasarkan ID
+     */
+    suspend fun getPackageById(id: Int): Paket? {
+        return _packages.value.find { it.id == id }
+    }
+
+    /**
+     * Mengambil semua paket
+     */
+    suspend fun getAllPackages(): List<Paket> {
+        return _packages.value
+    }
+
+    /**
+     * Mengubah data paket
+     */
+    suspend fun updatePackage(paket: Paket) {
+        val currentList = _packages.value.toMutableList()
+        val index = currentList.indexOfFirst { it.id == paket.id }
+
+        if (index != -1) {
+            currentList[index] = paket
+            _packages.value = currentList
+        }
+    }
+
+    /**
+     * Menghapus paket berdasarkan ID
+     */
+    suspend fun deletePackage(id: Int) {
+        val currentList = _packages.value.toMutableList()
+        currentList.removeIf { it.id == id }
+        _packages.value = currentList
     }
 }

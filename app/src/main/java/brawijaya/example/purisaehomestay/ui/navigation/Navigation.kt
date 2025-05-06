@@ -14,6 +14,7 @@ import brawijaya.example.purisaehomestay.ui.screens.profile.ProfileScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.contactus.ContactUsScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.faq.FAQScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.infoakun.InfoScreen
+import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.ManagePackageScreen
 import brawijaya.example.purisaehomestay.ui.screens.promo.PromoScreen
 
 sealed class Screen(val route: String){
@@ -28,6 +29,7 @@ sealed class Screen(val route: String){
     object Info : Screen("info")
     object Notification : Screen("notification")
     object Activities : Screen("activities")
+    object ManagePackage: Screen("manage_package")
 }
 
 @Composable
@@ -65,6 +67,9 @@ fun AppNavigation(navController: NavHostController) {
         }
         composable(Screen.Activities.route) {
             ActivityScreen(navController = navController)
+        }
+        composable(Screen.ManagePackage.route) {
+            ManagePackageScreen(navController = navController)
         }
 //        composable(Screen.Notification.route) {
 //            NotificationScreen(navController = navController)
