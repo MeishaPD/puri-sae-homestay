@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "474339813238",
+    "firebase_url": "https://puri-sae-homestay-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "puri-sae-homestay",
+    "storage_bucket": "puri-sae-homestay.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:474339813238:android:c95ec978f7b616e6667c57",
+        "android_client_info": {
+          "package_name": "brawijaya.example.purisaehomestay"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZrNiyJ3CWoktcjKRwFOlMl2J2Fl2hzYI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:474339813238:android:573062fb94d06b0e667c57",
+        "android_client_info": {
+          "package_name": "com.example.purisae"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZrNiyJ3CWoktcjKRwFOlMl2J2Fl2hzYI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
