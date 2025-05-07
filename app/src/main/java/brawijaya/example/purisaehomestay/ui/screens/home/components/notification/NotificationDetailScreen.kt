@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import brawijaya.example.purisaehomestay.data.model.NotificationData
 import brawijaya.example.purisaehomestay.data.model.NotificationType
 import brawijaya.example.purisaehomestay.data.model.UserNotification
+import brawijaya.example.purisaehomestay.ui.viewmodels.NotificationViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 

@@ -59,6 +59,8 @@ import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.profile.components.MenuItemWithIcon
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileUiState
+import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileViewModel
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 
@@ -217,7 +219,9 @@ fun ProfileContent(
                     MenuItemWithIcon(
                         painter = painterResource(id = R.drawable.folder_managed),
                         title = "Kelola Paket",
-                        onClick = {}
+                        onClick = {
+                            navController.navigate(Screen.ManagePackage.route)
+                        }
                     )
                     MenuItemWithIcon(
                         icon = Icons.Rounded.CreditCard,

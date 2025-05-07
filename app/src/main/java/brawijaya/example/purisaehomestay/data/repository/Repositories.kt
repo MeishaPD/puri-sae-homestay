@@ -714,6 +714,7 @@ class DataRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIn
  * Repository untuk mengelola paket-paket penginapan
  * Sementara menggunakan local variable sebagai sumber data
  */
+@Singleton
 class PackageRepository @Inject constructor(
     private val db: FirebaseFirestore
 ) {
@@ -814,7 +815,7 @@ class PackageRepository @Inject constructor(
     /**
      * Menghapus paket berdasarkan ID
      */
-    suspend fun deletePackage(id: Int) {
+    fun deletePackage(id: Int) {
         val currentList = _packages.value.toMutableList()
         currentList.removeIf { it.id == id }
         _packages.value = currentList

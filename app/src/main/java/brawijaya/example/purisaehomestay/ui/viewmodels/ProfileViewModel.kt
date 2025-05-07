@@ -1,4 +1,4 @@
-package brawijaya.example.purisaehomestay.ui.screens.profile
+package brawijaya.example.purisaehomestay.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

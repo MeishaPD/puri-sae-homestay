@@ -55,6 +55,7 @@ import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import brawijaya.example.purisaehomestay.ui.viewmodels.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

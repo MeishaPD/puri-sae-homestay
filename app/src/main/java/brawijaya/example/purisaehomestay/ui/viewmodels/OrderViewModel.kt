@@ -1,4 +1,4 @@
-package brawijaya.example.purisaehomestay.ui.screens.order
+package brawijaya.example.purisaehomestay.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -41,8 +41,18 @@ class OrderViewModel @Inject constructor(
 
     fun getPaketById(id: Int) {
         viewModelScope.launch {
-            val paket = repository.getPackageById(id)
-            _uiState.update { it.copy(selectedPaket = paket) }
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val paket = repository.getPackageById(id)
+                _uiState.update { it.copy(selectedPaket = paket, isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "Gagal mengambil data paket: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
         }
     }
 
@@ -51,13 +61,14 @@ class OrderViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 repository.createPackage(paket)
-                _uiState.update { it.copy(errorMessage = null) }
+                _uiState.update { it.copy(errorMessage = null, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(errorMessage = "Gagal menambahkan paket: ${e.message}")
+                    it.copy(
+                        errorMessage = "Gagal menambahkan paket: ${e.message}",
+                        isLoading = false
+                    )
                 }
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
@@ -67,13 +78,14 @@ class OrderViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 repository.updatePackage(paket)
-                _uiState.update { it.copy(errorMessage = null) }
+                _uiState.update { it.copy(errorMessage = null, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(errorMessage = "Gagal memperbarui paket: ${e.message}")
+                    it.copy(
+                        errorMessage = "Gagal memperbarui paket: ${e.message}",
+                        isLoading = false
+                    )
                 }
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
@@ -83,19 +95,24 @@ class OrderViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 repository.deletePackage(id)
-                _uiState.update { it.copy(errorMessage = null) }
+                _uiState.update { it.copy(errorMessage = null, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(errorMessage = "Gagal menghapus paket: ${e.message}")
+                    it.copy(
+                        errorMessage = "Gagal menghapus paket: ${e.message}",
+                        isLoading = false
+                    )
                 }
-            } finally {
-                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
 
     fun resetErrorMessage() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    fun updateErrorMessage(message: String) {
+        _uiState.update { it.copy(errorMessage = message) }
     }
 
     fun resetSelectedPaket() {

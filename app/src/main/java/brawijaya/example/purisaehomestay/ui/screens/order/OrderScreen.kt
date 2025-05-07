@@ -21,19 +21,22 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +45,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.Paket
@@ -51,45 +55,57 @@ import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.order.components.PackageCard
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
 import brawijaya.example.purisaehomestay.utils.DateUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: OrderViewModel = hiltViewModel()
 ) {
-
+    val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
-    val (checkInDate, setCheckInDate) = remember { mutableStateOf("") }
-    val (checkOutDate, setCheckOutDate) = remember { mutableStateOf("") }
-    val (guestCount, setGuestCount) = remember { mutableStateOf("") }
-    val (selectedPackage, setSelectedPackage) = remember { mutableIntStateOf(1) }
+    var checkInDate by remember { mutableStateOf("") }
+    var checkOutDate by remember { mutableStateOf("") }
+    var guestCount by remember { mutableStateOf("") }
+    var selectedPackageId by remember { mutableIntStateOf(1) }
+    var checkOutError by remember { mutableStateOf<String?>(null) }
 
-    val (checkOutError, setCheckOutError) = remember { mutableStateOf<String?>(null) }
+    val packageList = uiState.packageList
+
+    if (uiState.selectedPaket == null) {
+        viewModel.getPaketById(selectedPackageId)
+    }
 
     val updateCheckInDate = { date: String ->
-        setCheckInDate(date)
+        checkInDate = date
 
         if (checkOutDate.isNotEmpty()) {
-            if (!DateUtils.isValidCheckOutDate(date, checkOutDate)) {
-                setCheckOutError("Tanggal check-out harus setelah tanggal check-in")
+            checkOutError = if (!DateUtils.isValidCheckOutDate(date, checkOutDate)) {
+                "Tanggal check-out harus setelah tanggal check-in"
             } else {
-                setCheckOutError(null)
+                null
             }
         }
     }
 
     val updateCheckOutDate = { date: String ->
-        setCheckOutDate(date)
+        checkOutDate = date
 
         if (checkInDate.isNotEmpty()) {
-            if (!DateUtils.isValidCheckOutDate(checkInDate, date)) {
-                setCheckOutError("Tanggal check-out harus setelah tanggal check-in")
+            checkOutError = if (!DateUtils.isValidCheckOutDate(checkInDate, date)) {
+                "Tanggal check-out harus setelah tanggal check-in"
             } else {
-                setCheckOutError(null)
+                null
             }
         }
+    }
+
+    val onPackageSelected = { id: Int ->
+        selectedPackageId = id
+        viewModel.getPaketById(id)
     }
 
     Scaffold(
@@ -138,7 +154,6 @@ fun OrderScreen(
                             launchSingleTop = true
                         }
                     }
-//                    onNavigate = {}
                 )
             }
         }
@@ -152,25 +167,51 @@ fun OrderScreen(
                     .verticalScroll(scrollState)
                     .padding(innerPadding)
             ) {
+                // Show loading or error states if needed
+                if (uiState.isLoading) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Loading...")
+                    }
+                }
+
+                uiState.errorMessage?.let { errorMsg ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = errorMsg,
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+
                 OrderScreenContent(
+                    packageList = packageList,
                     checkInDate = checkInDate,
                     onCheckInDateSelected = updateCheckInDate,
                     checkOutDate = checkOutDate,
                     onCheckOutDateSelected = updateCheckOutDate,
                     guestCount = guestCount,
-                    onGuestCountChange = setGuestCount,
-                    selectedPackage = selectedPackage,
-                    onPackageSelected = setSelectedPackage,
+                    onGuestCountChange = { guestCount = it },
+                    selectedPackage = selectedPackageId,
+                    onPackageSelected = onPackageSelected,
                     checkOutError = checkOutError
                 )
             }
         }
-
     }
 }
 
 @Composable
 fun OrderScreenContent(
+    packageList: List<Paket>,
     checkInDate: String,
     onCheckInDateSelected: (String) -> Unit,
     checkOutDate: String,
@@ -181,55 +222,8 @@ fun OrderScreenContent(
     onPackageSelected: (Int) -> Unit,
     checkOutError: String? = null
 ) {
-
-    val dropdownExpanded = remember { mutableStateOf(false) }
-    val selectedPaymentOption = remember { mutableStateOf("Jenis Pembayaran") }
-
-    val paketList = remember {
-        listOf(
-            Paket(
-                id = 1,
-                title = "Sewa Bungalow",
-                features = listOf(
-                    "2 Lantai",
-                    "Kapasitas 4-6 Orang",
-                    "Wifi, AC dan Air Panas",
-                    "Kolam Renang"
-                ),
-                weekdayPrice = 500000.0,
-                weekendPrice = 550000.0,
-                imageUrl = R.drawable.bungalow_single
-            ),
-            Paket(
-                id = 2,
-                title = "Paket Rombongan (sampai 20 orang)",
-                features = listOf(
-                    "3 Bungalow",
-                    "Free 3 Ekstra Bed",
-                    "Dapur, Wifi, AC dan Air Panas",
-                    "Kolam Renang",
-                    "Joglo (Karaoke)"
-                ),
-                weekdayPrice = 2000000.0,
-                weekendPrice = 2150000.0,
-                imageUrl = R.drawable.bungalow_group
-            ),
-            Paket(
-                id = 3,
-                title = "Paket Venue Wedding",
-                features = listOf(
-                    "Bungalow",
-                    "Joglo Utama",
-                    "Dapur",
-                    "Area Makan",
-                    "Kolam Renang"
-                ),
-                weekdayPrice = 7000000.0,
-                weekendPrice = 0.0,
-                imageUrl = R.drawable.wedding_venue
-            )
-        )
-    }
+    var dropdownExpanded by remember { mutableStateOf(false) }
+    var selectedPaymentOption by remember { mutableStateOf("Jenis Pembayaran") }
 
     Box(
         modifier = Modifier
@@ -240,7 +234,6 @@ fun OrderScreenContent(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-
             DateRangePicker(
                 checkInDate = checkInDate,
                 onCheckInDateSelected = onCheckInDateSelected,
@@ -262,14 +255,15 @@ fun OrderScreenContent(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            paketList.forEachIndexed { index, paket ->
+            // Use the packages from the ViewModel
+            packageList.forEachIndexed { index, paket ->
                 PackageCard(
                     paket = paket,
                     isSelected = selectedPackage == paket.id,
                     onSelect = { onPackageSelected(paket.id) }
                 )
 
-                if (index < paketList.lastIndex) {
+                if (index < packageList.lastIndex) {
                     Spacer(Modifier.height(16.dp))
                 }
             }
@@ -306,7 +300,8 @@ fun OrderScreenContent(
                     )
                 },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .padding(bottom = 8.dp)
             )
 
@@ -316,7 +311,7 @@ fun OrderScreenContent(
                     .clip(RoundedCornerShape(8.dp))
             ) {
                 OutlinedTextField(
-                    value = selectedPaymentOption.value,
+                    value = selectedPaymentOption,
                     onValueChange = { },
                     readOnly = true,
                     enabled = false,
@@ -340,7 +335,7 @@ fun OrderScreenContent(
                         disabledContainerColor = MaterialTheme.colorScheme.surface
                     ),
                     trailingIcon = {
-                        IconButton(onClick = { dropdownExpanded.value = true }) {
+                        IconButton(onClick = { dropdownExpanded = true }) {
                             Icon(
                                 imageVector = Icons.Rounded.KeyboardArrowDown,
                                 contentDescription = "Dropdown",
@@ -351,13 +346,13 @@ fun OrderScreenContent(
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { dropdownExpanded.value = true }
+                        .clickable { dropdownExpanded = true }
                         .padding(bottom = 16.dp)
                 )
 
                 DropdownMenu(
-                    expanded = dropdownExpanded.value,
-                    onDismissRequest = { dropdownExpanded.value = false },
+                    expanded = dropdownExpanded,
+                    onDismissRequest = { dropdownExpanded = false },
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
                         .align(Alignment.TopCenter)
@@ -367,8 +362,8 @@ fun OrderScreenContent(
                             Text("Pembayaran DP 25%")
                         },
                         onClick = {
-                            selectedPaymentOption.value = "Pembayaran DP 25%"
-                            dropdownExpanded.value = false
+                            selectedPaymentOption = "Pembayaran DP 25%"
+                            dropdownExpanded = false
                         }
                     )
                     DropdownMenuItem(
@@ -376,8 +371,8 @@ fun OrderScreenContent(
                             Text("Pembayaran Lunas")
                         },
                         onClick = {
-                            selectedPaymentOption.value = "Pembayaran Lunas"
-                            dropdownExpanded.value = false
+                            selectedPaymentOption = "Pembayaran Lunas"
+                            dropdownExpanded = false
                         }
                     )
                 }
@@ -387,13 +382,15 @@ fun OrderScreenContent(
                 colors = ButtonDefaults.buttonColors(PrimaryGold),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
-                onClick = {  }
+                onClick = { /* Create order logic here */ }
             ) {
-                Text("Pesan Sekarang",
+                Text(
+                    "Pesan Sekarang",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
-                    ),)
+                    ),
+                )
             }
 
             HorizontalDivider(
