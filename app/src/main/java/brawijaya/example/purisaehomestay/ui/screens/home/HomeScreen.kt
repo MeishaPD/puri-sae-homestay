@@ -1,9 +1,11 @@
 package brawijaya.example.purisaehomestay.ui.screens.home
 
+import android.content.Intent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,47 +14,64 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Whatsapp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.core.net.toUri
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.components.BottomNavigation
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
+import brawijaya.example.purisaehomestay.ui.components.NewsComponent
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.theme.Typography
+import brawijaya.example.purisaehomestay.ui.viewmodels.HomeUiState
+import brawijaya.example.purisaehomestay.ui.viewmodels.HomeViewModel
+import brawijaya.example.purisaehomestay.utils.openMapDirection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
+
+    val uiState by viewModel.uiState.collectAsState()
+
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -98,7 +117,10 @@ fun HomeScreen(
                     .padding(top = 64.dp)
                     .padding(innerPadding)
             ) {
-                HomeScreenContent(navController)
+                HomeScreenContent(
+                    navController = navController,
+                    uiState = uiState
+                )
             }
 
             Box(
@@ -141,10 +163,22 @@ fun HomeScreen(
 
 @Composable
 fun HomeScreenContent(
-    navController: NavController
+    navController: NavController,
+    uiState: HomeUiState
 ) {
 
-    var imagesCount = 3
+    val facilities: List<String> = listOf(
+        "Kolam Renang",
+        "Bungalow (4-6 Orang)",
+        "24 jam Full Wifi",
+        "AC dan Air Panas",
+        "Area Makan",
+        "Joglo Utama",
+        "Mushola",
+        "Sarapan (by request)"
+    )
+
+    val context = LocalContext.current
 
     Column {
         Image(
@@ -206,143 +240,23 @@ fun HomeScreenContent(
                 fontSize = 20.sp
             )
 
-            repeat(5) {
+            if (uiState.news.isEmpty()) {
                 Text(
-                    text = "22/04/2025",
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.LightGray
+                    text = "Belum ada berita terbaru"
                 )
-                Text(
-                    text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-                if (imagesCount == 4) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(120.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(Color.LightGray)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(120.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(Color.LightGray)
-                            )
-                        }
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(120.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(Color.LightGray)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(120.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(Color.LightGray)
-                            )
-                        }
+            } else {
+                Column {
+                    uiState.news.map { newsItem ->
+                        NewsComponent(news = newsItem)
+                        Spacer(Modifier.height(24.dp))
                     }
-                } else if (imagesCount == 3) {
-
-                    Image(
-                        painter = painterResource(id = R.drawable.bungalow_group),
-                        contentDescription = "Image 1",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
-                            .padding(top = 4.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        contentScale = ContentScale.FillWidth
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.bungalow_single),
-                            contentDescription = "Image 2",
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(120.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                            contentScale = ContentScale.FillWidth
-                        )
-                        Image(
-                            painter = painterResource(id = R.drawable.landscape_view),
-                            contentDescription = "Image 2",
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(120.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                            contentScale = ContentScale.FillWidth
-                        )
-                    }
-                } else if (imagesCount == 2) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(170.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(Color.LightGray)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(170.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(Color.LightGray)
-                        )
-                    }
-                } else if (imagesCount == 1) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(340.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(Color.LightGray)
-                    )
                 }
-
-                Spacer(modifier = Modifier.padding(8.dp))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.padding(8.dp))
             }
 
             Text(
                 text = "Tentang Puri Sae Malang",
                 modifier = Modifier
-                    .padding(bottom = 8.dp),
+                    .padding(vertical = 8.dp),
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
             )
@@ -355,26 +269,140 @@ fun HomeScreenContent(
                 contentScale = ContentScale.Fit
             )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .padding(bottom = 16.dp)
-                    .background(Color.LightGray)
+            Text(
+                text = "Puri Sae Malang adalah homestay keluarga yang berada di Dau, Sengkaling, Malang. Posisinya strategis karena dekat dengan tempat wisata di Kota Batu maupun Kota Malang. Cocok sebagai rumah singgah, pertemuan keluarga, maupun kegiatan formal dan nonformal lainnya.",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Justify
+                )
             )
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .background(Color.LightGray)
+            Text(
+                text = "Fasilitas Kami",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                modifier = Modifier.padding(top = 8.dp)
             )
+
+            facilities.forEach { facility ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(4.dp)
+                            .background(Color.Black, CircleShape)
+                    )
+                    Text(
+                        text = facility,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            }
+
+            Text(
+                text = "Lokasi Kami",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+            Text(
+                text = "Jl. Jambu No. 21, Sempu, Gadingkulon, Kec. Dau, Kabupaten Malang, Jawa Timur 65151",
+                fontSize = 12.sp,
+                textAlign = TextAlign.Justify,
+            )
+
+            OutlinedButton(
+                onClick = {
+                    openMapDirection(context, "Puri SAE.kick")
+                },
+                modifier = Modifier
+                    .fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White,
+                    contentColor = PrimaryGold
+                ),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, PrimaryGold)
+            ) {
+                Text(
+                    text = "Lihat di Google Maps",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                )
+            }
+
+            Text(
+                text = "Hubungi Kami",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+            Column(
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clickable {
+                            val phoneNumber = "6281334463644"
+                            val url = "https://wa.me/$phoneNumber"
+                            val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                            context.startActivity(intent)
+                        }
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Whatsapp,
+                        contentDescription = "Whatsapp",
+                        modifier = Modifier.size(12.dp),
+                        tint = Color.Black
+                    )
+
+                    Text(
+                        text = "+6281-3344-63644",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 12.sp
+                        ),
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clickable {
+                            val uname = "purisaemalang"
+                            val url = "https://instagram.com/$uname/"
+                            val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                            context.startActivity(intent)
+                        }
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.instagram),
+                        contentDescription = "Instagram",
+                        modifier = Modifier.size(12.dp),
+                        tint = Color.Black
+                    )
+                    Text(
+                        text = "@purisaemalang",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 12.sp
+                        ),
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            }
         }
     }
 }
-
-//@Preview(showBackground = true)
-//@Composable
-//fun HomeScreenPreview() {
-//    HomeScreen(navController = null)
-//}

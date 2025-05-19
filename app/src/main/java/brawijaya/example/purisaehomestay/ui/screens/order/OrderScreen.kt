@@ -13,8 +13,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -56,15 +58,19 @@ import brawijaya.example.purisaehomestay.ui.screens.order.components.PackageCard
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
+import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileUiState
+import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileViewModel
 import brawijaya.example.purisaehomestay.utils.DateUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrderScreen(
     navController: NavController,
-    viewModel: OrderViewModel = hiltViewModel()
+    viewModel: OrderViewModel = hiltViewModel(),
+    profileViewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val profileState by profileViewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
     var checkInDate by remember { mutableStateOf("") }
@@ -72,6 +78,9 @@ fun OrderScreen(
     var guestCount by remember { mutableStateOf("") }
     var selectedPackageId by remember { mutableIntStateOf(1) }
     var checkOutError by remember { mutableStateOf<String?>(null) }
+
+    var guestName by remember { mutableStateOf("") }
+    var guestPhone by remember { mutableStateOf("") }
 
     val packageList = uiState.packageList
 
@@ -167,7 +176,6 @@ fun OrderScreen(
                     .verticalScroll(scrollState)
                     .padding(innerPadding)
             ) {
-                // Show loading or error states if needed
                 if (uiState.isLoading) {
                     Box(
                         modifier = Modifier.fillMaxWidth(),
@@ -202,7 +210,12 @@ fun OrderScreen(
                     onGuestCountChange = { guestCount = it },
                     selectedPackage = selectedPackageId,
                     onPackageSelected = onPackageSelected,
-                    checkOutError = checkOutError
+                    checkOutError = checkOutError,
+                    profileState = profileState,
+                    guestName = guestName,
+                    onGuestNameChange = { guestName = it },
+                    guestPhone = guestPhone,
+                    onGuestPhoneChange = { guestPhone = it }
                 )
             }
         }
@@ -220,7 +233,12 @@ fun OrderScreenContent(
     onGuestCountChange: (String) -> Unit,
     selectedPackage: Int,
     onPackageSelected: (Int) -> Unit,
-    checkOutError: String? = null
+    checkOutError: String? = null,
+    profileState: ProfileUiState,
+    guestName: String = "",
+    onGuestNameChange: (String) -> Unit = {},
+    guestPhone: String = "",
+    onGuestPhoneChange: (String) -> Unit = {}
 ) {
     var dropdownExpanded by remember { mutableStateOf(false) }
     var selectedPaymentOption by remember { mutableStateOf("Jenis Pembayaran") }
@@ -255,28 +273,85 @@ fun OrderScreenContent(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Use the packages from the ViewModel
-            packageList.forEachIndexed { index, paket ->
-                PackageCard(
-                    paket = paket,
-                    isSelected = selectedPackage == paket.id,
-                    onSelect = { onPackageSelected(paket.id) }
-                )
+            if (packageList.isEmpty()) {
+                Text("Tidak ada paket tersedia untuk hari ini")
+            } else {
+                packageList.forEachIndexed { index, paket ->
+                    PackageCard(
+                        paket = paket,
+                        isSelected = selectedPackage == paket.id,
+                        onSelect = { onPackageSelected(paket.id) }
+                    )
 
-                if (index < packageList.lastIndex) {
-                    Spacer(Modifier.height(16.dp))
+                    if (index < packageList.lastIndex) {
+                        Spacer(Modifier.height(16.dp))
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (profileState.isAdmin) {
+                OutlinedTextField(
+                    value = guestName,
+                    onValueChange = onGuestNameChange,
+                    label = { Text("Nama") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Outlined.Person,
+                            contentDescription = "Nama penyewa",
+                            tint = PrimaryGold
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
+                        focusedBorderColor = PrimaryGold,
+                        unfocusedLabelColor = Color.LightGray,
+                        focusedLabelColor = Color.Black,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                )
+
+                OutlinedTextField(
+                    value = guestPhone,
+                    onValueChange = onGuestPhoneChange,
+                    label = { Text("Nomor Telepon") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Phone,
+                            contentDescription = "Nomor Telepon",
+                            tint = PrimaryGold
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
+                        focusedBorderColor = PrimaryGold,
+                        unfocusedLabelColor = Color.LightGray,
+                        focusedLabelColor = Color.Black,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                )
+            }
+
             OutlinedTextField(
                 value = guestCount,
                 onValueChange = onGuestCountChange,
-                label = { Text("Jumlah Tamu", style = MaterialTheme.typography.labelSmall) },
+                label = { Text("Jumlah Tamu") },
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Outlined.Person,
+                        imageVector = Icons.Outlined.Groups,
                         contentDescription = "Jumlah Tamu",
                         tint = PrimaryGold
                     )
@@ -382,7 +457,26 @@ fun OrderScreenContent(
                 colors = ButtonDefaults.buttonColors(PrimaryGold),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
-                onClick = { /* Create order logic here */ }
+                onClick = {
+                    if (profileState.isAdmin) {
+                        if (guestName.isNotBlank() && guestPhone.isNotBlank() &&
+                            guestCount.isNotBlank() && checkInDate.isNotBlank() &&
+                            checkOutDate.isNotBlank() && selectedPaymentOption != "Jenis Pembayaran") {
+                            // Proceed with booking for admin
+                            // TODO: Implement booking logic with admin-entered details
+                        } else {
+                            // Show error that all fields are required
+                        }
+                    } else {
+                        if (guestCount.isNotBlank() && checkInDate.isNotBlank() &&
+                            checkOutDate.isNotBlank() && selectedPaymentOption != "Jenis Pembayaran") {
+                            // Proceed with booking using user's own details from profileState
+                            // TODO: Implement booking logic with user's profile details
+                        } else {
+                            // Show error that all fields are required
+                        }
+                    }
+                }
             ) {
                 Text(
                     "Pesan Sekarang",
