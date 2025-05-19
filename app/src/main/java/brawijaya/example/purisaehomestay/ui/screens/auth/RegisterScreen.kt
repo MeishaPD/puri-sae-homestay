@@ -91,9 +91,9 @@ fun RegisterScreen(
         }
     }
 
-    LaunchedEffect(uiState.error) {
-        if (uiState.error.isNotEmpty()) {
-            snackbarHostState.showSnackbar(uiState.error)
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage.isNotEmpty()) {
+            snackbarHostState.showSnackbar(uiState.errorMessage)
             viewModel.clearError()
         }
     }
@@ -288,7 +288,7 @@ fun RegisterContent(
                     "Nama Lengkap",
                     style = MaterialTheme.typography.labelMedium,
                 )
-                    },
+            },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
@@ -317,12 +317,12 @@ fun RegisterContent(
         OutlinedTextField(
             value = phoneNumber,
             onValueChange = onPhoneNumberChange,
-            label = { 
+            label = {
                 Text(
                     "Nomor Telepon",
                     style = MaterialTheme.typography.labelMedium,
                 )
-                    },
+            },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             modifier = Modifier.fillMaxWidth(),

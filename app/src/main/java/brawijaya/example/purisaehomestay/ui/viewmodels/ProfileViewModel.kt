@@ -18,7 +18,7 @@ data class ProfileUiState(
     val isLoggedIn: Boolean = false,
     val userData: UserData? = null,
     val isAdmin: Boolean = false,
-    val error: String = ""
+    val errorMessage: String? = null
 )
 
 @HiltViewModel
@@ -63,7 +63,7 @@ class ProfileViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = "Failed to load user data: ${e.message}"
+                        errorMessage = "Failed to load user data: ${e.message}"
                     )
                 }
             }
@@ -87,7 +87,7 @@ class ProfileViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { state ->
-            state.copy(error = "")
+            state.copy(errorMessage = null)
         }
     }
 }
