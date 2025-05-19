@@ -9,7 +9,7 @@ import androidx.navigation.navArgument
 import brawijaya.example.purisaehomestay.ui.screens.auth.LoginScreen
 import brawijaya.example.purisaehomestay.ui.screens.auth.RegisterScreen
 import brawijaya.example.purisaehomestay.ui.screens.home.HomeScreen
-import brawijaya.example.purisaehomestay.ui.screens.home.components.notification.NotificationScreen
+//import brawijaya.example.purisaehomestay.ui.screens.home.components.notification.NotificationScreen
 import brawijaya.example.purisaehomestay.ui.screens.order.OrderScreen
 import brawijaya.example.purisaehomestay.ui.screens.order.history.ActivityScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.ProfileScreen
@@ -33,12 +33,22 @@ sealed class Screen(val route: String){
     object Notification : Screen("notification")
     object Activities : Screen("activities")
     object ManagePackage: Screen("manage_package")
+    object ManageNews : Screen("manage_news")
     object EditPackage: Screen("edit_package?paketId={paketId}") {
         fun createRoute(paketId: Int? = null): String {
             return if (paketId != null) {
                 "edit_package?paketId=$paketId"
             } else {
                 "edit_package?paketId=-1"
+            }
+        }
+    }
+    object EditNews: Screen("edit_news?newsId={newsId}") {
+        fun createRoute(newsId: Int? = null): String {
+            return if (newsId != null) {
+                "edit_news?newsId=$newsId"
+            } else {
+                "edit_news?newsId=-1"
             }
         }
     }
