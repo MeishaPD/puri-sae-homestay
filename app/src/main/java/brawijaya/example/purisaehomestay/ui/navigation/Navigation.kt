@@ -16,6 +16,8 @@ import brawijaya.example.purisaehomestay.ui.screens.profile.ProfileScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.contactus.ContactUsScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.faq.FAQScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.infoakun.InfoScreen
+import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managenews.EditNewsScreen
+import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managenews.ManageNewsScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.EditPackageScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.ManagePackageScreen
 import brawijaya.example.purisaehomestay.ui.screens.promo.PromoScreen
@@ -93,6 +95,9 @@ fun AppNavigation(navController: NavHostController) {
         composable(Screen.ManagePackage.route) {
             ManagePackageScreen(navController = navController)
         }
+        composable(Screen.ManageNews.route) {
+            ManageNewsScreen(navController = navController)
+        }
         composable(
             route = Screen.EditPackage.route,
             arguments = listOf(
@@ -107,6 +112,22 @@ fun AppNavigation(navController: NavHostController) {
             EditPackageScreen(
                 navController = navController,
                 paketId = validPaketId
+            )
+        }
+        composable(
+            route = Screen.EditNews.route,
+            arguments = listOf(
+                navArgument("newsId") {
+                    type = NavType.IntType
+                    defaultValue = -1
+                }
+            )
+        ) { backStackEntry ->
+            val newsId = backStackEntry.arguments?.getInt("newsId")
+            val validNewsId = if (newsId != null && newsId > 0) newsId else null
+            EditNewsScreen(
+                navController = navController,
+                newsId = validNewsId
             )
         }
 //        composable(Screen.Notification.route) {

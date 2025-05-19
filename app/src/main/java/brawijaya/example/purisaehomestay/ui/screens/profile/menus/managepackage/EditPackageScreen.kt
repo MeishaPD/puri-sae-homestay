@@ -21,8 +21,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -342,7 +342,7 @@ fun EditPackageScreen(
                                             modifier = Modifier.padding(0.dp)
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Default.Delete,
+                                                imageVector = Icons.Rounded.Delete,
                                                 contentDescription = "Hapus Fitur",
                                                 tint = Color.Red
                                             )
@@ -409,28 +409,30 @@ fun EditPackageScreen(
                         )
                     }
 
-                    OutlinedButton(
-                        onClick = {
-                            packageToDelete = paket
-                            showDeleteDialog = true
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Color.White,
-                            contentColor = PrimaryGold
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        border = BorderStroke(1.dp, PrimaryGold)
-                    ) {
-                        Text(
-                            text = "Hapus Paket",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
+                    if (paketId != null && paketId > 0) {
+                        OutlinedButton(
+                            onClick = {
+                                packageToDelete = paket
+                                showDeleteDialog = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.White,
+                                contentColor = PrimaryGold
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, PrimaryGold)
+                        ) {
+                            Text(
+                                text = "Hapus Paket",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }

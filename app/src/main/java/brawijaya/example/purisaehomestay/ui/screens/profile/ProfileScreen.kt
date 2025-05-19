@@ -231,7 +231,9 @@ fun ProfileContent(
                     MenuItemWithIcon(
                         icon = Icons.Rounded.Newspaper,
                         title = "Kelola Berita",
-                        onClick = {}
+                        onClick = {
+                            navController.navigate(Screen.ManageNews.route)
+                        }
                     )
                 }
 
