@@ -1,4 +1,4 @@
-package brawijaya.example.purisaehomestay.ui.screens.home.components.notification
+package brawijaya.example.purisaehomestay.ui.viewmodels
 
 import android.util.Log
 import androidx.lifecycle.LiveData
@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import brawijaya.example.purisaehomestay.data.model.NewsData
 import brawijaya.example.purisaehomestay.data.model.NotificationData
-import brawijaya.example.purisaehomestay.data.model.NotificationType
 import brawijaya.example.purisaehomestay.data.model.PromoData
 import brawijaya.example.purisaehomestay.data.model.UserData
 import brawijaya.example.purisaehomestay.data.model.UserNotification
@@ -32,7 +31,8 @@ class NotificationViewModel(
     val notifications: LiveData<List<Pair<NotificationData, UserNotification>>> = _notifications
 
     // StateFlow for selected notification (for passing between screens)
-    private val _selectedNotification = MutableStateFlow<Pair<NotificationData, UserNotification>?>(null)
+    private val _selectedNotification =
+        MutableStateFlow<Pair<NotificationData, UserNotification>?>(null)
     val selectedNotification: StateFlow<Pair<NotificationData, UserNotification>?> = _selectedNotification.asStateFlow()
 
     // For tracking unread count
@@ -106,7 +106,7 @@ class NotificationViewModel(
                             // Create a new UserNotification with isRead set to true
                             val updatedUserNotification = pair.second.copy(
                                 isRead = true,
-                                readAt = Timestamp.now()
+                                readAt = Timestamp.Companion.now()
                             )
                             Pair(pair.first, updatedUserNotification)
                         } else {
@@ -308,15 +308,15 @@ class NotificationViewModel(
         val newsData1 = NewsData(
             title = "Grand Opening Homestay Baru",
             description = "Kami dengan bangga mengumumkan pembukaan unit homestay baru kami di Bali. Nikmati diskon 20% untuk pemesanan pertama!",
-            createdAt = Timestamp.now()
+            createdAt = Timestamp.Companion.now()
         )
 
         // Create dummy promos
         val promoData1 = PromoData(
             applicablePackageIds = listOf(mapOf("package_id" to "package1")),
             isActive = true,
-            startDate = Timestamp.now(),
-            endDate = Timestamp(Timestamp.now().seconds + 2592000, 0),
+            startDate = Timestamp.Companion.now(),
+            endDate = Timestamp(Timestamp.Companion.now().seconds + 2592000, 0),
             description = "Diskon 15% untuk pemesanan 3 malam atau lebih.",
             discountAmount = 15.0,
             discountType = "percentage",

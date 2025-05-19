@@ -36,6 +36,7 @@ import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.data.model.NotificationData
 import brawijaya.example.purisaehomestay.data.model.NotificationType
 import brawijaya.example.purisaehomestay.data.model.UserNotification
+import brawijaya.example.purisaehomestay.ui.viewmodels.NotificationViewModel
 import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
 import java.util.*

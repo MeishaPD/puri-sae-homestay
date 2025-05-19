@@ -2,8 +2,10 @@ package brawijaya.example.purisaehomestay.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import brawijaya.example.purisaehomestay.ui.screens.auth.LoginScreen
 import brawijaya.example.purisaehomestay.ui.screens.auth.RegisterScreen
 import brawijaya.example.purisaehomestay.ui.screens.home.HomeScreen
@@ -14,6 +16,7 @@ import brawijaya.example.purisaehomestay.ui.screens.profile.ProfileScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.contactus.ContactUsScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.faq.FAQScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.infoakun.InfoScreen
+import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.EditPackageScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.ManagePackageScreen
 import brawijaya.example.purisaehomestay.ui.screens.promo.PromoScreen
 
@@ -30,6 +33,15 @@ sealed class Screen(val route: String){
     object Notification : Screen("notification")
     object Activities : Screen("activities")
     object ManagePackage: Screen("manage_package")
+    object EditPackage: Screen("edit_package?paketId={paketId}") {
+        fun createRoute(paketId: Int? = null): String {
+            return if (paketId != null) {
+                "edit_package?paketId=$paketId"
+            } else {
+                "edit_package?paketId=-1"
+            }
+        }
+    }
 }
 
 @Composable
@@ -70,6 +82,22 @@ fun AppNavigation(navController: NavHostController) {
         }
         composable(Screen.ManagePackage.route) {
             ManagePackageScreen(navController = navController)
+        }
+        composable(
+            route = Screen.EditPackage.route,
+            arguments = listOf(
+                navArgument("paketId") {
+                    type = NavType.IntType
+                    defaultValue = -1
+                }
+            )
+        ) { backStackEntry ->
+            val paketId = backStackEntry.arguments?.getInt("paketId")
+            val validPaketId = if (paketId != null && paketId > 0) paketId else null
+            EditPackageScreen(
+                navController = navController,
+                paketId = validPaketId
+            )
         }
 //        composable(Screen.Notification.route) {
 //            NotificationScreen(navController = navController)

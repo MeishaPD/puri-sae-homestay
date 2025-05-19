@@ -1,4 +1,4 @@
-package brawijaya.example.purisaehomestay.ui.screens.auth
+package brawijaya.example.purisaehomestay.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

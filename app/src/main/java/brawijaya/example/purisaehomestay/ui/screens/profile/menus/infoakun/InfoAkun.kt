@@ -27,8 +27,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
-import brawijaya.example.purisaehomestay.ui.screens.profile.ProfileUiState
-import brawijaya.example.purisaehomestay.ui.screens.profile.ProfileViewModel
+import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileUiState
+import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileViewModel
 import brawijaya.example.purisaehomestay.ui.screens.profile.components.MenuItem
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold

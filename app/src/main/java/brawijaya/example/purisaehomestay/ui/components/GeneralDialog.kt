@@ -59,7 +59,7 @@ fun GeneralDialog(
                     Text(
                         text = message,
                         color = Color.Black,
-                        style = MaterialTheme.typography.bodyMedium.copy(
+                        style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Normal,
                             fontSize = 14.sp
                         )
