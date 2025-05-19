@@ -210,26 +210,24 @@ class DataRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIn
     private val userNotificationsRef = db.collection("userNotifications")
 
     // Get all news
-    suspend fun getAllNews(): Result<List<NewsData>> {
-        return try {
-            val snapshot = newsRef.orderBy("createdAt", Query.Direction.DESCENDING).get().await()
-            val newsDataList = snapshot.documents.map { doc ->
-                NewsData(
-                    id = doc.id,
-                    title = doc.getString("title") ?: "",
-                    description = doc.getString("description") ?: "",
-                    imageUrl = doc.getString("imageUrl"),
-                    createdAt = doc.getTimestamp("createdAt") ?: Timestamp.now(),
-                    updatedAt = doc.getTimestamp("updatedAt") ?: Timestamp.now(),
-                    isRead = doc.getBoolean("isRead") ?: false
-                )
-            }
-            Result.Success(newsDataList)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to get news", e)
-            Result.Error("Failed to get news: ${e.message}")
-        }
-    }
+//    suspend fun getAllNews(): Result<List<NewsData>> {
+//        return try {
+//            val snapshot = newsRef.orderBy("createdAt", Query.Direction.DESCENDING).get().await()
+//            val newsDataList = snapshot.documents.map { doc ->
+//                NewsData(
+//                    id = doc.id,
+//                    description = doc.getString("description") ?: "",
+//                    createdAt = doc.getTimestamp("createdAt") ?: Timestamp.now(),
+//                    updatedAt = doc.getTimestamp("updatedAt") ?: Timestamp.now(),
+//                    isRead = doc.getBoolean("isRead") ?: false
+//                )
+//            }
+//            Result.Success(newsDataList)
+//        } catch (e: Exception) {
+//            Log.e(TAG, "Failed to get news", e)
+//            Result.Error("Failed to get news: ${e.message}")
+//        }
+//    }
 
     // Get all active promos
     suspend fun getActivePromos(): Result<List<PromoData>> {
@@ -315,7 +313,6 @@ class DataRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIn
     suspend fun createNews(newsData: NewsData): Result<String> {
         return try {
             val newsMap = hashMapOf(
-                "title" to newsData.title,
                 "description" to newsData.description,
                 "imageUrl" to newsData.imageUrl,
                 "createdAt" to newsData.createdAt,
@@ -714,6 +711,7 @@ class DataRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIn
  * Repository untuk mengelola paket-paket penginapan
  * Sementara menggunakan local variable sebagai sumber data
  */
+@Singleton
 class PackageRepository @Inject constructor(
     private val db: FirebaseFirestore
 ) {
@@ -773,7 +771,7 @@ class PackageRepository @Inject constructor(
     /**
      * Membuat paket baru
      */
-    suspend fun createPackage(paket: Paket) {
+    fun createPackage(paket: Paket) {
         val currentList = _packages.value.toMutableList()
 
         if (currentList.any { it.id == paket.id }) {
@@ -787,21 +785,21 @@ class PackageRepository @Inject constructor(
     /**
      * Mengambil paket berdasarkan ID
      */
-    suspend fun getPackageById(id: Int): Paket? {
+    fun getPackageById(id: Int): Paket? {
         return _packages.value.find { it.id == id }
     }
 
     /**
      * Mengambil semua paket
      */
-    suspend fun getAllPackages(): List<Paket> {
+    fun getAllPackages(): List<Paket> {
         return _packages.value
     }
 
     /**
      * Mengubah data paket
      */
-    suspend fun updatePackage(paket: Paket) {
+    fun updatePackage(paket: Paket) {
         val currentList = _packages.value.toMutableList()
         val index = currentList.indexOfFirst { it.id == paket.id }
 
@@ -814,7 +812,7 @@ class PackageRepository @Inject constructor(
     /**
      * Menghapus paket berdasarkan ID
      */
-    suspend fun deletePackage(id: Int) {
+    fun deletePackage(id: Int) {
         val currentList = _packages.value.toMutableList()
         currentList.removeIf { it.id == id }
         _packages.value = currentList

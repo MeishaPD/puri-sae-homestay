@@ -55,6 +55,7 @@ import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import brawijaya.example.purisaehomestay.ui.viewmodels.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,9 +82,9 @@ fun LoginScreen(
         }
     }
 
-    LaunchedEffect(uiState.error) {
-        if (uiState.error.isNotEmpty()) {
-            snackbarHostState.showSnackbar(uiState.error)
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage.isNotEmpty()) {
+            snackbarHostState.showSnackbar(uiState.errorMessage)
             viewModel.clearError()
         }
     }
@@ -297,7 +298,7 @@ fun LoginContent(
         )
 
         Row(
-           verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
@@ -308,7 +309,7 @@ fun LoginContent(
                     fontSize = 12.sp
                 ),
             )
-            
+
             TextButton(onClick = {onForgotPasswordClick}) {
                 Text(
                     text = "Klik di sini",

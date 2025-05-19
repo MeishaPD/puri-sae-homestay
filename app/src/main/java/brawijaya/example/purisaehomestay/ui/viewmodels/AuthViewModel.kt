@@ -1,4 +1,4 @@
-package brawijaya.example.purisaehomestay.ui.screens.auth
+package brawijaya.example.purisaehomestay.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,7 +15,7 @@ import javax.inject.Inject
 data class AuthUiState(
     val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
-    val error: String = "",
+    val errorMessage: String = "",
     val isPasswordResetSent: Boolean = false
 )
 
@@ -40,7 +40,7 @@ class AuthViewModel @Inject constructor(
     fun signIn(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
             _uiState.update { state ->
-                state.copy(error = "Email dan password tidak boleh kosong")
+                state.copy(errorMessage = "Email dan password tidak boleh kosong")
             }
             return
         }
@@ -56,7 +56,7 @@ class AuthViewModel @Inject constructor(
                         state.copy(
                             isLoading = false,
                             isLoggedIn = true,
-                            error = ""
+                            errorMessage = ""
                         )
                     }
                 }
@@ -64,7 +64,7 @@ class AuthViewModel @Inject constructor(
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
-                            error = result.message
+                            errorMessage = result.message
                         )
                     }
                 }
@@ -75,7 +75,7 @@ class AuthViewModel @Inject constructor(
     fun signUp(email: String, password: String, name: String, phoneNumber: String) {
         if (email.isBlank() || password.isBlank() || name.isBlank() || phoneNumber.isBlank()) {
             _uiState.update { state ->
-                state.copy(error = "Semua field harus diisi")
+                state.copy(errorMessage = "Semua field harus diisi")
             }
             return
         }
@@ -91,7 +91,7 @@ class AuthViewModel @Inject constructor(
                         state.copy(
                             isLoading = false,
                             isLoggedIn = true,
-                            error = ""
+                            errorMessage = ""
                         )
                     }
                 }
@@ -99,7 +99,7 @@ class AuthViewModel @Inject constructor(
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
-                            error = result.message
+                            errorMessage = result.message
                         )
                     }
                 }
@@ -110,7 +110,7 @@ class AuthViewModel @Inject constructor(
     fun resetPassword(email: String) {
         if (email.isBlank()) {
             _uiState.update { state ->
-                state.copy(error = "Email tidak boleh kosong")
+                state.copy(errorMessage = "Email tidak boleh kosong")
             }
             return
         }
@@ -125,7 +125,7 @@ class AuthViewModel @Inject constructor(
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
-                            error = "",
+                            errorMessage = "",
                             isPasswordResetSent = true
                         )
                     }
@@ -134,7 +134,7 @@ class AuthViewModel @Inject constructor(
                     _uiState.update { state ->
                         state.copy(
                             isLoading = false,
-                            error = result.message
+                            errorMessage = result.message
                         )
                     }
                 }
@@ -144,7 +144,7 @@ class AuthViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { state ->
-            state.copy(error = "")
+            state.copy(errorMessage = "")
         }
     }
 }

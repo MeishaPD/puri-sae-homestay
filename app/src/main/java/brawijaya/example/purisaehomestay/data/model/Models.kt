@@ -89,10 +89,10 @@ data class PaymentsData(
 )
 
 data class NewsData(
-    val id: String = "",
-    val title: String = "",
+    val id: Int,
     val description: String = "",
-    val imageUrl: String? = null,
+    val date: String = "",
+    val imageUrl: List<Int> = emptyList<Int>(),
     val createdAt: Timestamp = Timestamp.now(),
     val updatedAt: Timestamp = Timestamp.now(),
     val isRead: Boolean = false

@@ -48,7 +48,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAdminRepository(
+    fun providePackageRepository(
         firestore: FirebaseFirestore
     ): PackageRepository {
         return PackageRepository(firestore)
