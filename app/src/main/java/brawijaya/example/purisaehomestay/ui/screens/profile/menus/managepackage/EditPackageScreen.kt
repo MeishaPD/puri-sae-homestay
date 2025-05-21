@@ -1,11 +1,7 @@
 package brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage
 
 import android.Manifest
-import android.net.Uri
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,14 +11,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Button
@@ -54,11 +48,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -69,13 +60,10 @@ import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.ui.components.GeneralDialog
+import brawijaya.example.purisaehomestay.ui.components.ImageUploader
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
-import brawijaya.example.purisaehomestay.utils.ImagePickerDialog
-import brawijaya.example.purisaehomestay.utils.PermissionHandler
-import brawijaya.example.purisaehomestay.utils.hasPermissions
-import coil.compose.rememberAsyncImagePainter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,32 +79,12 @@ fun EditPackageScreen(
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var packageToDelete by remember { mutableStateOf<Paket?>(null) }
-    var showImagePickerDialog by remember { mutableStateOf(false) }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var permissionsGranted by remember { mutableStateOf(false) }
 
     val paket = uiState.selectedPaket
     val isLoading = uiState.isLoading
     val errorMessage = uiState.errorMessage
-
-    val requiredPermissions = remember {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            arrayOf(Manifest.permission.CAMERA, Manifest.permission.READ_MEDIA_IMAGES)
-        } else {
-            arrayOf(Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        permissionsGranted = hasPermissions(context, requiredPermissions)
-    }
-
-    PermissionHandler(
-        permissionsGranted = permissionsGranted,
-        onPermissionsResult = { granted ->
-            permissionsGranted = granted
-        }
-    )
+    val isUploadingImage = uiState.uploadingImage
+    val cloudinaryImageUrl = uiState.imageUrl
 
     LaunchedEffect(paketId) {
         if (paketId != null && paketId > 0) {
@@ -140,7 +108,7 @@ fun EditPackageScreen(
     var weekendPrice by remember { mutableStateOf("") }
     val features = remember { mutableStateListOf<String>() }
     var newFeature by remember { mutableStateOf("") }
-    var imageResId by remember { mutableStateOf<Int?>(null) }
+    var imageUrl by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(paket) {
         paket?.let {
@@ -149,7 +117,7 @@ fun EditPackageScreen(
             weekendPrice = it.weekendPrice.toString()
             features.clear()
             features.addAll(it.features)
-            imageResId = it.imageUrl
+            imageUrl = it.imageUrl
         }
     }
 
@@ -199,55 +167,19 @@ fun EditPackageScreen(
                         .padding(16.dp)
                         .verticalScroll(scrollState)
                 ) {
-                    Box(
+
+                    ImageUploader(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .border(1.dp, PrimaryGold, RoundedCornerShape(8.dp))
-                            .clickable {
-                                if (permissionsGranted) {
-                                    showImagePickerDialog = true
-                                } else {
-                                    permissionsGranted = false
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (selectedImageUri != null) {
-                            Image(
-                                painter = rememberAsyncImagePainter(selectedImageUri),
-                                contentDescription = "Selected Image",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else if (imageResId != null) {
-                            Image(
-                                painter = painterResource(id = imageResId!!),
-                                contentDescription = "Package Image",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CameraAlt,
-                                    contentDescription = "Add Image",
-                                    tint = PrimaryGold,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Tambah Gambar",
-                                    color = PrimaryGold,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
-                    }
+                            .height(200.dp),
+                        imageUrl = cloudinaryImageUrl ?: imageUrl,
+                        placeHolderResId = null,
+                        onImageUrlChanged = { uri ->
+                            viewModel.uploadImage(uri)
+                        },
+                        isUploading = isUploadingImage
+                    )
+
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -262,10 +194,6 @@ fun EditPackageScreen(
                         ),
                         singleLine = true
                     )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -431,13 +359,12 @@ fun EditPackageScreen(
                             }
 
                             val newPaket = Paket(
-                                id = paketId ?: ((uiState.packageList.maxOfOrNull { it.id }
-                                    ?: 0) + 1),
+                                id = paketId ?: ((uiState.packageList.maxOfOrNull { it.id } ?: 0) + 1),
                                 title = title,
                                 features = features.toList(),
                                 weekdayPrice = weekdayPrice.toDoubleOrNull() ?: 0.0,
                                 weekendPrice = weekendPrice.toDoubleOrNull() ?: 0.0,
-                                imageUrl = imageResId ?: defaultImageId
+                                imageUrl = cloudinaryImageUrl ?: imageUrl ?: ""
                             )
 
                             if (paketId != null && paketId > 0) {
@@ -489,15 +416,6 @@ fun EditPackageScreen(
         }
     }
 
-    if (showImagePickerDialog) {
-        ImagePickerDialog(
-            onDismiss = { showImagePickerDialog = false },
-            onImageSelected = { uri ->
-                selectedImageUri = uri
-            }
-        )
-    }
-
     if (showDeleteDialog && packageToDelete != null) {
         GeneralDialog(
             message = "Apakah Anda yakin untuk menghapus paket ini?",
@@ -505,7 +423,7 @@ fun EditPackageScreen(
                 showDeleteDialog = false
             },
             onConfirm = {
-                packageToDelete?.id?.let { viewModel.deletePackage(packageToDelete!!.id) }
+                packageToDelete?.id?.let { viewModel.deletePackage(it) }
                 showDeleteDialog = false
                 packageToDelete = null
                 navController.popBackStack()

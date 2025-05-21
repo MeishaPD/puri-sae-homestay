@@ -18,14 +18,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import java.text.NumberFormat
 import java.util.Locale
+import brawijaya.example.purisaehomestay.R
 
 @Composable
 fun PackageCard(
@@ -35,6 +39,7 @@ fun PackageCard(
 ) {
     val numberFormat = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     numberFormat.maximumFractionDigits = 0
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier
@@ -52,22 +57,25 @@ fun PackageCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Row {
-                paket.imageUrl?.let { painter ->
-                    Image(
-                        painter = painterResource(id = painter),
-                        contentDescription = paket.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(140.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    )
-                } ?: run {
-                    Spacer(
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp, vertical = 8.dp)
-                    )
-                }
+                Image(
+                    painter = paket.imageUrl?.let {
+                        rememberAsyncImagePainter(
+                            ImageRequest.Builder(context)
+                                .data(data = it)
+                                .apply(block = {
+                                    crossfade(true)
+                                    placeholder(R.drawable.bungalow_single)
+                                })
+                                .build()
+                        )
+                    } ?: painterResource(id = R.drawable.bungalow_single),
+                    contentDescription = paket.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(140.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                )
 
                 LazyColumn(
                     modifier = Modifier

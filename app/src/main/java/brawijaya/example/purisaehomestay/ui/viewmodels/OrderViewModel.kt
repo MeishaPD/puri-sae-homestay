@@ -1,10 +1,14 @@
 package brawijaya.example.purisaehomestay.ui.viewmodels
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.repository.CloudinaryRepository
 import brawijaya.example.purisaehomestay.data.repository.PackageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,12 +20,16 @@ data class OrderUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val selectedPaket: Paket? = null,
-    val packageList: List<Paket> = emptyList()
+    val packageList: List<Paket> = emptyList(),
+    val uploadingImage: Boolean = false,
+    val imageUrl: String? = null
 )
 
 @HiltViewModel
 class OrderViewModel @Inject constructor(
-    private val repository: PackageRepository
+    private val repository: PackageRepository,
+    private val cloudinaryRepository: CloudinaryRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrderUiState())
@@ -107,6 +115,23 @@ class OrderViewModel @Inject constructor(
         }
     }
 
+    fun uploadImage(uri: Uri) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(uploadingImage = true) }
+            try {
+                val cloudinaryUrl = cloudinaryRepository.uploadImage(context, uri)
+                _uiState.update { it.copy(imageUrl = cloudinaryUrl, uploadingImage = false) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "Gagal mengunggah gambar: ${e.message}",
+                        uploadingImage = false
+                    )
+                }
+            }
+        }
+    }
+
     fun resetErrorMessage() {
         _uiState.update { it.copy(errorMessage = null) }
     }
@@ -117,5 +142,9 @@ class OrderViewModel @Inject constructor(
 
     fun resetSelectedPaket() {
         _uiState.update { it.copy(selectedPaket = null) }
+    }
+
+    fun resetImageUrl() {
+        _uiState.update { it.copy(imageUrl = null) }
     }
 }

@@ -32,7 +32,7 @@ data class Paket(
     val features: List<String>,
     val weekdayPrice: Double = 0.0,
     val weekendPrice: Double = 0.0,
-    val imageUrl: Int? = null,
+    val imageUrl: String? = null
 )
 
 data class HomestayRequirement(

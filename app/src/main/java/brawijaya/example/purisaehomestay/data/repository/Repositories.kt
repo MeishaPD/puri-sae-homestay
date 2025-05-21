@@ -735,7 +735,7 @@ class PackageRepository @Inject constructor(
                 ),
                 weekdayPrice = 500000.0,
                 weekendPrice = 550000.0,
-                imageUrl = R.drawable.bungalow_single
+                imageUrl = "https://res.cloudinary.com/dkwbc3had/image/upload/v1747844579/tmp1462088710327270865_h3ybha.jpg"
             ),
             Paket(
                 id = 2,
@@ -749,7 +749,7 @@ class PackageRepository @Inject constructor(
                 ),
                 weekdayPrice = 2000000.0,
                 weekendPrice = 2150000.0,
-                imageUrl = R.drawable.bungalow_group
+                imageUrl = "https://res.cloudinary.com/dkwbc3had/image/upload/v1747844579/tmp1462088710327270865_h3ybha.jpg"
             ),
             Paket(
                 id = 3,
@@ -763,7 +763,7 @@ class PackageRepository @Inject constructor(
                 ),
                 weekdayPrice = 7000000.0,
                 weekendPrice = 7500000.0,
-                imageUrl = R.drawable.wedding_venue
+                imageUrl = "https://res.cloudinary.com/dkwbc3had/image/upload/v1747844579/tmp1462088710327270865_h3ybha.jpg"
             )
         )
     }
