@@ -23,9 +23,9 @@ import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 @Composable
 fun EmptyNewsScreen(onAddNews: () -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+       modifier = Modifier
+           .fillMaxSize()
+           .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

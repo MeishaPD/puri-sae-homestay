@@ -1,5 +1,7 @@
 package brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage
 
+import android.Manifest
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
@@ -45,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +57,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -68,6 +72,10 @@ import brawijaya.example.purisaehomestay.ui.components.GeneralDialog
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
+import brawijaya.example.purisaehomestay.utils.ImagePickerDialog
+import brawijaya.example.purisaehomestay.utils.PermissionHandler
+import brawijaya.example.purisaehomestay.utils.hasPermissions
+import coil.compose.rememberAsyncImagePainter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,13 +87,36 @@ fun EditPackageScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var packageToDelete by remember { mutableStateOf<Paket?>(null) }
+    var showImagePickerDialog by remember { mutableStateOf(false) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var permissionsGranted by remember { mutableStateOf(false) }
 
     val paket = uiState.selectedPaket
     val isLoading = uiState.isLoading
     val errorMessage = uiState.errorMessage
+
+    val requiredPermissions = remember {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            arrayOf(Manifest.permission.CAMERA, Manifest.permission.READ_MEDIA_IMAGES)
+        } else {
+            arrayOf(Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        permissionsGranted = hasPermissions(context, requiredPermissions)
+    }
+
+    PermissionHandler(
+        permissionsGranted = permissionsGranted,
+        onPermissionsResult = { granted ->
+            permissionsGranted = granted
+        }
+    )
 
     LaunchedEffect(paketId) {
         if (paketId != null && paketId > 0) {
@@ -103,6 +134,8 @@ fun EditPackageScreen(
     }
 
     var title by remember { mutableStateOf("") }
+    var bungalowQty by remember { mutableIntStateOf(1) }
+    var jogloQty by remember { mutableIntStateOf(0) }
     var weekdayPrice by remember { mutableStateOf("") }
     var weekendPrice by remember { mutableStateOf("") }
     val features = remember { mutableStateListOf<String>() }
@@ -172,10 +205,23 @@ fun EditPackageScreen(
                             .height(200.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .border(1.dp, PrimaryGold, RoundedCornerShape(8.dp))
-                            .clickable { /* TODO: Implement image picker */ },
+                            .clickable {
+                                if (permissionsGranted) {
+                                    showImagePickerDialog = true
+                                } else {
+                                    permissionsGranted = false
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (imageResId != null) {
+                        if (selectedImageUri != null) {
+                            Image(
+                                painter = rememberAsyncImagePainter(selectedImageUri),
+                                contentDescription = "Selected Image",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else if (imageResId != null) {
                             Image(
                                 painter = painterResource(id = imageResId!!),
                                 contentDescription = "Package Image",
@@ -216,6 +262,10 @@ fun EditPackageScreen(
                         ),
                         singleLine = true
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -437,6 +487,15 @@ fun EditPackageScreen(
                 }
             }
         }
+    }
+
+    if (showImagePickerDialog) {
+        ImagePickerDialog(
+            onDismiss = { showImagePickerDialog = false },
+            onImageSelected = { uri ->
+                selectedImageUri = uri
+            }
+        )
     }
 
     if (showDeleteDialog && packageToDelete != null) {

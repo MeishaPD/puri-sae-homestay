@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.Order
-import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.order.components.HistoryCard
 import brawijaya.example.purisaehomestay.ui.screens.order.components.PaymentDialog
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
@@ -66,7 +65,7 @@ fun ActivityScreen(
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            navController.navigate(Screen.Order.route)
+                            navController.popBackStack()
                         }
                     ) {
                         Icon(
