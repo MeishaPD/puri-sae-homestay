@@ -58,7 +58,7 @@ fun PackageCard(
         ) {
             Row {
                 Image(
-                    painter = paket.imageUrl?.let {
+                    painter = paket.thumbnail_url?.let {
                         rememberAsyncImagePainter(
                             ImageRequest.Builder(context)
                                 .data(data = it)
@@ -112,17 +112,17 @@ fun PackageCard(
                     item {
                         Text(
                             text = "${
-                                numberFormat.format(paket.weekdayPrice).replace("Rp", "Rp ")
+                                numberFormat.format(paket.price_weekday).replace("Rp", "Rp ")
                             }/malam (weekday)",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             modifier = Modifier.padding(top = 4.dp)
                         )
 
-                        if (paket.weekendPrice > 0) {
+                        if (paket.price_weekend > 0) {
                             Text(
                                 text = "${
-                                    numberFormat.format(paket.weekendPrice).replace("Rp", "Rp ")
+                                    numberFormat.format(paket.price_weekend).replace("Rp", "Rp ")
                                 } (weekend/holiday)",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,

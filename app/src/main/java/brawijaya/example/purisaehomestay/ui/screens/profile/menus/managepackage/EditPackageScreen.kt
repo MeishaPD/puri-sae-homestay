@@ -1,6 +1,7 @@
 package brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage
 
 import android.Manifest
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -50,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -87,10 +90,11 @@ fun EditPackageScreen(
     val cloudinaryImageUrl = uiState.imageUrl
 
     LaunchedEffect(paketId) {
-        if (paketId != null && paketId > 0) {
+        if (paketId != null && paketId != 0) {
+            Log.d("PAKET", "PAKET ID ${paketId}")
             viewModel.getPaketById(paketId)
         } else {
-            viewModel.resetSelectedPaket()
+            viewModel
         }
     }
 
@@ -102,10 +106,10 @@ fun EditPackageScreen(
     }
 
     var title by remember { mutableStateOf("") }
-    var bungalowQty by remember { mutableIntStateOf(1) }
-    var jogloQty by remember { mutableIntStateOf(0) }
     var weekdayPrice by remember { mutableStateOf("") }
     var weekendPrice by remember { mutableStateOf("") }
+    var bungalowQty by remember { mutableStateOf("") }
+    var jogloQty by remember { mutableStateOf("") }
     val features = remember { mutableStateListOf<String>() }
     var newFeature by remember { mutableStateOf("") }
     var imageUrl by remember { mutableStateOf<String?>(null) }
@@ -113,11 +117,13 @@ fun EditPackageScreen(
     LaunchedEffect(paket) {
         paket?.let {
             title = it.title
-            weekdayPrice = it.weekdayPrice.toString()
-            weekendPrice = it.weekendPrice.toString()
+            weekdayPrice = it.price_weekday.toString()
+            weekendPrice = it.price_weekend.toString()
             features.clear()
             features.addAll(it.features)
-            imageUrl = it.imageUrl
+            jogloQty = it.jogloQty.toString()
+            bungalowQty = it.bungalowQty.toString()
+            imageUrl = it.thumbnail_url
         }
     }
 
@@ -180,7 +186,6 @@ fun EditPackageScreen(
                         isUploading = isUploadingImage
                     )
 
-
                     Spacer(modifier = Modifier.height(16.dp))
 
                     OutlinedTextField(
@@ -238,6 +243,53 @@ fun EditPackageScreen(
                         ),
                         singleLine = true
                     )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = bungalowQty,
+                            onValueChange = {
+                                if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                                    bungalowQty = it
+                                }
+                            },
+                            label = { Text("Bungalow QTY") },
+                            modifier = Modifier.weight(1f),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
+                                focusedBorderColor = PrimaryGold
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done
+                            ),
+                            singleLine = true
+                        )
+
+                        OutlinedTextField(
+                            value = jogloQty,
+                            onValueChange = {
+                                if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                                    jogloQty = it
+                                }
+                            },
+                            label = { Text("Joglo QTY") },
+                            modifier = Modifier.weight(1f),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
+                                focusedBorderColor = PrimaryGold
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done
+                            ),
+                            singleLine = true
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -335,6 +387,13 @@ fun EditPackageScreen(
 
                     Button(
                         onClick = {
+
+                            val currentImageUrl = cloudinaryImageUrl ?: imageUrl
+                            if (currentImageUrl.isNullOrBlank()) {
+                                viewModel.updateErrorMessage("Gambar paket harus dipilih")
+                                return@Button
+                            }
+
                             if (title.isBlank()) {
                                 viewModel.updateErrorMessage("Judul paket tidak boleh kosong")
                                 return@Button
@@ -345,29 +404,38 @@ fun EditPackageScreen(
                                 return@Button
                             }
 
+                            if (weekendPrice.isBlank()) {
+                                viewModel.updateErrorMessage("Harga weekend tidak boleh kosong")
+                                return@Button
+                            }
+
+                            if (bungalowQty.isBlank()) {
+                                viewModel.updateErrorMessage("Jumlah Bungalow tidak boleh kosong")
+                                return@Button
+                            }
+
+                            if (jogloQty.isBlank()) {
+                                viewModel.updateErrorMessage("Jumlah Joglo tidak boleh kosong")
+                                return@Button
+                            }
+
                             if (features.isEmpty()) {
                                 viewModel.updateErrorMessage("Minimal satu fitur harus ditambahkan")
                                 return@Button
                             }
 
-                            val defaultImageId = if (paketId == 1) {
-                                R.drawable.bungalow_single
-                            } else if (paketId == 2) {
-                                R.drawable.bungalow_group
-                            } else {
-                                R.drawable.wedding_venue
-                            }
-
                             val newPaket = Paket(
-                                id = paketId ?: ((uiState.packageList.maxOfOrNull { it.id } ?: 0) + 1),
+                                id = paketId ?: (uiState.packageList.maxOfOrNull { it.id } ?: 0),
                                 title = title,
                                 features = features.toList(),
-                                weekdayPrice = weekdayPrice.toDoubleOrNull() ?: 0.0,
-                                weekendPrice = weekendPrice.toDoubleOrNull() ?: 0.0,
-                                imageUrl = cloudinaryImageUrl ?: imageUrl ?: ""
+                                price_weekday = weekdayPrice.toDoubleOrNull() ?: 0.0,
+                                price_weekend = weekendPrice.toDoubleOrNull() ?: 0.0,
+                                thumbnail_url = currentImageUrl,
+                                jogloQty = jogloQty.toInt(),
+                                bungalowQty = bungalowQty.toInt()
                             )
 
-                            if (paketId != null && paketId > 0) {
+                            if (paketId != null && paketId != 0) {
                                 viewModel.updatePackage(newPaket)
                             } else {
                                 viewModel.createPackage(newPaket)
@@ -379,14 +447,14 @@ fun EditPackageScreen(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = if (paketId != null && paketId > 0) "Simpan Perubahan" else "Tambah Paket",
+                            text = if (paketId != null && paketId != 0) "Simpan Perubahan" else "Tambah Paket",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Bold
                             )
                         )
                     }
 
-                    if (paketId != null && paketId > 0) {
+                    if (paketId != null && paketId != 0) {
                         OutlinedButton(
                             onClick = {
                                 packageToDelete = paket
