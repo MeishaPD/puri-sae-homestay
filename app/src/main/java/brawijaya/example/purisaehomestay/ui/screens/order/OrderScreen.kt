@@ -1,5 +1,6 @@
 package brawijaya.example.purisaehomestay.ui.screens.order
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,13 +49,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import brawijaya.example.purisaehomestay.R
+import brawijaya.example.purisaehomestay.data.model.Order
 import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.ui.components.BottomNavigation
 import brawijaya.example.purisaehomestay.ui.components.DateRangePicker
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.order.components.PackageCard
+import brawijaya.example.purisaehomestay.ui.screens.order.components.PaymentDialog
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
@@ -81,12 +86,21 @@ fun OrderScreen(
 
     var guestName by remember { mutableStateOf("") }
     var guestPhone by remember { mutableStateOf("") }
+    var uploadedImageUrl by remember { mutableStateOf<String?>(null) }
 
     val packageList = uiState.packageList
 
     if (uiState.selectedPaket == null) {
         viewModel.getPaketById(selectedPackageId)
     }
+
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    savedStateHandle?.getLiveData<String>("uploaded_image_url")?.observe(
+        LocalLifecycleOwner.current
+    ) { imageUrl ->
+        uploadedImageUrl = imageUrl
+    }
+
 
     val updateCheckInDate = { date: String ->
         checkInDate = date
@@ -215,7 +229,8 @@ fun OrderScreen(
                     guestName = guestName,
                     onGuestNameChange = { guestName = it },
                     guestPhone = guestPhone,
-                    onGuestPhoneChange = { guestPhone = it }
+                    onGuestPhoneChange = { guestPhone = it },
+                    navController = navController
                 )
             }
         }
@@ -238,10 +253,24 @@ fun OrderScreenContent(
     guestName: String = "",
     onGuestNameChange: (String) -> Unit = {},
     guestPhone: String = "",
-    onGuestPhoneChange: (String) -> Unit = {}
+    onGuestPhoneChange: (String) -> Unit = {},
+    navController: NavController
 ) {
     var dropdownExpanded by remember { mutableStateOf(false) }
     var selectedPaymentOption by remember { mutableStateOf("Jenis Pembayaran") }
+
+    var showPaymentDialog by remember { mutableStateOf(false) }
+
+    val inProcessOrder = remember {
+        Order(
+            date = DateUtils.parseDate("18/04/2025") ?: DateUtils.getCurrentDate(),
+            isPaid = false,
+            title = "Paket 2 Paket Rombongan",
+            totalPrice = 500000,
+            amountToBePaid = 1500000,
+            imageResId = R.drawable.bungalow_group
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -459,6 +488,7 @@ fun OrderScreenContent(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
                 onClick = {
+                    showPaymentDialog = true
                     if (profileState.isAdmin) {
                         if (guestName.isNotBlank() && guestPhone.isNotBlank() &&
                             guestCount.isNotBlank() && checkInDate.isNotBlank() &&
@@ -523,6 +553,16 @@ fun OrderScreenContent(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        if (showPaymentDialog) {
+            PaymentDialog(
+                order = inProcessOrder,
+                onDismiss = { showPaymentDialog = false },
+                onUploadClicked = {
+                    navController.navigate(Screen.UploadPayment.route)
+                }
+            )
         }
     }
 }

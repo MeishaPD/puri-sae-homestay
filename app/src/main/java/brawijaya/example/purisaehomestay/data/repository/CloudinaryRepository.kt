@@ -3,6 +3,7 @@ package brawijaya.example.purisaehomestay.data.repository
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import brawijaya.example.purisaehomestay.BuildConfig
 import com.cloudinary.android.MediaManager
 import com.cloudinary.android.callback.ErrorInfo
 import com.cloudinary.android.callback.UploadCallback

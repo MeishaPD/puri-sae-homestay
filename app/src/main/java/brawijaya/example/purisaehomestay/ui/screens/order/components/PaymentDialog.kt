@@ -247,7 +247,10 @@ fun PaymentDialog(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
-                    onClick = onUploadClicked,
+                    onClick = {
+                        onDismiss()
+                        onUploadClicked()
+                    },
                     modifier = Modifier
                         .fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(

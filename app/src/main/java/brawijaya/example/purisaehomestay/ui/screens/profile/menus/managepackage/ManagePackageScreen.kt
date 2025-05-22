@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -45,7 +44,7 @@ import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.components.EmptyPackageList
 import brawijaya.example.purisaehomestay.ui.screens.order.components.PackageCard
-import brawijaya.example.purisaehomestay.ui.viewmodels.OrderUiState
+import brawijaya.example.purisaehomestay.ui.viewmodels.PackageUiState
 import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
@@ -120,7 +119,7 @@ fun ManagePackageScreen(
 
 @Composable
 fun ManagePackageContent(
-    uiState: OrderUiState,
+    uiState: PackageUiState,
     onEditPackage: (Paket) -> Unit = {},
     onAddPackage: () -> Unit = {}
 ) {
