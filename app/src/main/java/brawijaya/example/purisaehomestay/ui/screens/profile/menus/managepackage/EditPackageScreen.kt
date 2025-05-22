@@ -1,7 +1,7 @@
 package brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage
 
-import android.Manifest
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -40,10 +39,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,8 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -60,7 +57,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.ui.components.GeneralDialog
 import brawijaya.example.purisaehomestay.ui.components.ImageUploader
@@ -78,10 +74,10 @@ fun EditPackageScreen(
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
-    val context = LocalContext.current
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var packageToDelete by remember { mutableStateOf<Paket?>(null) }
+    var showCancelDialog by remember { mutableStateOf(false) }
 
     val paket = uiState.selectedPaket
     val isLoading = uiState.isLoading
@@ -89,12 +85,13 @@ fun EditPackageScreen(
     val isUploadingImage = uiState.uploadingImage
     val cloudinaryImageUrl = uiState.imageUrl
 
+    var hasUnsavedChanges by remember { mutableStateOf(false) }
+    val isEditMode = paketId != null && paketId != 0 && paketId != -1
+
     LaunchedEffect(paketId) {
-        if (paketId != null && paketId != 0 && paketId != -1) {
-            Log.d("PAKET", "PAKET ID ${paketId}")
+        if (isEditMode) {
+            Log.d("PAKET", "PAKET ID $paketId")
             viewModel.getPaketById(paketId)
-        } else {
-            viewModel
         }
     }
 
@@ -127,6 +124,107 @@ fun EditPackageScreen(
         }
     }
 
+    LaunchedEffect(title, weekdayPrice, weekendPrice, bungalowQty, jogloQty, features.size, cloudinaryImageUrl) {
+        if (isEditMode && paket != null) {
+            hasUnsavedChanges = title != paket.title ||
+                    weekdayPrice != paket.price_weekday.toString() ||
+                    weekendPrice != paket.price_weekend.toString() ||
+                    bungalowQty != paket.bungalowQty.toString() ||
+                    jogloQty != paket.jogloQty.toString() ||
+                    features.toList() != paket.features ||
+                    cloudinaryImageUrl != null
+        } else if (!isEditMode) {
+            hasUnsavedChanges = title.isNotBlank() ||
+                    weekdayPrice.isNotBlank() ||
+                    weekendPrice.isNotBlank() ||
+                    bungalowQty.isNotBlank() ||
+                    jogloQty.isNotBlank() ||
+                    features.isNotEmpty() ||
+                    cloudinaryImageUrl != null
+        }
+    }
+
+    BackHandler(enabled = hasUnsavedChanges || uiState.pendingImageForDeletion != null) {
+        if (hasUnsavedChanges || uiState.pendingImageForDeletion != null) {
+            showCancelDialog = true
+        } else {
+            navController.popBackStack()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (uiState.pendingImageForDeletion != null && !hasUnsavedChanges) {
+                viewModel.cleanupPendingImage()
+            }
+        }
+    }
+
+    fun handleBackNavigation() {
+        if (uiState.pendingImageForDeletion != null) {
+            viewModel.cleanupPendingImage()
+        }
+        navController.popBackStack()
+    }
+
+    fun validateAndSavePackage() {
+        val currentImageUrl = cloudinaryImageUrl ?: imageUrl
+        if (currentImageUrl.isNullOrBlank()) {
+            viewModel.updateErrorMessage("Gambar paket harus dipilih")
+            return
+        }
+
+        if (title.isBlank()) {
+            viewModel.updateErrorMessage("Judul paket tidak boleh kosong")
+            return
+        }
+
+        if (weekdayPrice.isBlank()) {
+            viewModel.updateErrorMessage("Harga weekday tidak boleh kosong")
+            return
+        }
+
+        if (weekendPrice.isBlank()) {
+            viewModel.updateErrorMessage("Harga weekend tidak boleh kosong")
+            return
+        }
+
+        if (bungalowQty.isBlank()) {
+            viewModel.updateErrorMessage("Jumlah Bungalow tidak boleh kosong")
+            return
+        }
+
+        if (jogloQty.isBlank()) {
+            viewModel.updateErrorMessage("Jumlah Joglo tidak boleh kosong")
+            return
+        }
+
+        if (features.isEmpty()) {
+            viewModel.updateErrorMessage("Minimal satu fitur harus ditambahkan")
+            return
+        }
+
+        val newPaket = Paket(
+            id = paketId ?: (uiState.packageList.maxOfOrNull { it.id } ?: 0),
+            title = title,
+            features = features.toList(),
+            price_weekday = weekdayPrice.toDoubleOrNull() ?: 0.0,
+            price_weekend = weekendPrice.toDoubleOrNull() ?: 0.0,
+            thumbnail_url = currentImageUrl,
+            jogloQty = jogloQty.toInt(),
+            bungalowQty = bungalowQty.toInt()
+        )
+
+        if (isEditMode) {
+            viewModel.updatePackage(newPaket)
+        } else {
+            viewModel.createPackage(newPaket)
+        }
+
+        viewModel.markImageAsSaved()
+        navController.popBackStack()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -135,7 +233,7 @@ fun EditPackageScreen(
                 ),
                 title = {
                     Text(
-                        text = if (paketId != null && paketId != 0 && paketId != -1) "Edit Paket" else "Tambah Paket Baru",
+                        text = if (isEditMode) "Edit Paket" else "Tambah Paket Baru",
                         color = PrimaryGold,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Normal,
@@ -144,7 +242,13 @@ fun EditPackageScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        if (hasUnsavedChanges || uiState.pendingImageForDeletion != null) {
+                            showCancelDialog = true
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
                             contentDescription = "Kembali",
@@ -386,75 +490,20 @@ fun EditPackageScreen(
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Button(
-                        onClick = {
-
-                            val currentImageUrl = cloudinaryImageUrl ?: imageUrl
-                            if (currentImageUrl.isNullOrBlank()) {
-                                viewModel.updateErrorMessage("Gambar paket harus dipilih")
-                                return@Button
-                            }
-
-                            if (title.isBlank()) {
-                                viewModel.updateErrorMessage("Judul paket tidak boleh kosong")
-                                return@Button
-                            }
-
-                            if (weekdayPrice.isBlank()) {
-                                viewModel.updateErrorMessage("Harga weekday tidak boleh kosong")
-                                return@Button
-                            }
-
-                            if (weekendPrice.isBlank()) {
-                                viewModel.updateErrorMessage("Harga weekend tidak boleh kosong")
-                                return@Button
-                            }
-
-                            if (bungalowQty.isBlank()) {
-                                viewModel.updateErrorMessage("Jumlah Bungalow tidak boleh kosong")
-                                return@Button
-                            }
-
-                            if (jogloQty.isBlank()) {
-                                viewModel.updateErrorMessage("Jumlah Joglo tidak boleh kosong")
-                                return@Button
-                            }
-
-                            if (features.isEmpty()) {
-                                viewModel.updateErrorMessage("Minimal satu fitur harus ditambahkan")
-                                return@Button
-                            }
-
-                            val newPaket = Paket(
-                                id = paketId ?: (uiState.packageList.maxOfOrNull { it.id } ?: 0),
-                                title = title,
-                                features = features.toList(),
-                                price_weekday = weekdayPrice.toDoubleOrNull() ?: 0.0,
-                                price_weekend = weekendPrice.toDoubleOrNull() ?: 0.0,
-                                thumbnail_url = currentImageUrl,
-                                jogloQty = jogloQty.toInt(),
-                                bungalowQty = bungalowQty.toInt()
-                            )
-
-                            if (paketId != null && paketId != 0 && paketId != -1) {
-                                viewModel.updatePackage(newPaket)
-                            } else {
-                                viewModel.createPackage(newPaket)
-                            }
-                            navController.popBackStack()
-                        },
+                        onClick = { validateAndSavePackage() },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = if (paketId != null && paketId != 0 && paketId != -1) "Simpan Perubahan" else "Tambah Paket",
+                            text = if (isEditMode) "Simpan Perubahan" else "Tambah Paket",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Bold
                             )
                         )
                     }
 
-                    if (paketId != null && paketId != 0 && paketId != -1) {
+                    if (isEditMode) {
                         OutlinedButton(
                             onClick = {
                                 packageToDelete = paket
@@ -495,6 +544,23 @@ fun EditPackageScreen(
                 showDeleteDialog = false
                 packageToDelete = null
                 navController.popBackStack()
+            }
+        )
+    }
+
+    if (showCancelDialog) {
+        GeneralDialog(
+            message = if (hasUnsavedChanges) {
+                "Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar?"
+            } else {
+                "Apakah Anda yakin ingin membatalkan?"
+            },
+            onDismiss = {
+                showCancelDialog = false
+            },
+            onConfirm = {
+                showCancelDialog = false
+                handleBackNavigation()
             }
         )
     }
