@@ -33,6 +33,7 @@ import brawijaya.example.purisaehomestay.R
 
 @Composable
 fun PackageCard(
+    idx: Int,
     paket: Paket,
     isSelected: Boolean,
     onSelect: () -> Unit
@@ -147,7 +148,7 @@ fun PackageCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = paket.id.toString(),
+                    text = idx.toString(),
                     style = MaterialTheme.typography.titleLarge,
                     color = Color.White,
                     fontWeight = FontWeight.Bold

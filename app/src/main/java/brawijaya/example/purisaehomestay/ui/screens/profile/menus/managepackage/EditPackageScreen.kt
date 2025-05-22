@@ -90,7 +90,7 @@ fun EditPackageScreen(
     val cloudinaryImageUrl = uiState.imageUrl
 
     LaunchedEffect(paketId) {
-        if (paketId != null && paketId != 0) {
+        if (paketId != null && paketId != 0 && paketId != -1) {
             Log.d("PAKET", "PAKET ID ${paketId}")
             viewModel.getPaketById(paketId)
         } else {
@@ -135,7 +135,7 @@ fun EditPackageScreen(
                 ),
                 title = {
                     Text(
-                        text = if (paketId != null && paketId > 0) "Edit Paket" else "Tambah Paket Baru",
+                        text = if (paketId != null && paketId != 0 && paketId != -1) "Edit Paket" else "Tambah Paket Baru",
                         color = PrimaryGold,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Normal,
@@ -435,7 +435,7 @@ fun EditPackageScreen(
                                 bungalowQty = bungalowQty.toInt()
                             )
 
-                            if (paketId != null && paketId != 0) {
+                            if (paketId != null && paketId != 0 && paketId != -1) {
                                 viewModel.updatePackage(newPaket)
                             } else {
                                 viewModel.createPackage(newPaket)
@@ -447,14 +447,14 @@ fun EditPackageScreen(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = if (paketId != null && paketId != 0) "Simpan Perubahan" else "Tambah Paket",
+                            text = if (paketId != null && paketId != 0 && paketId != -1) "Simpan Perubahan" else "Tambah Paket",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Bold
                             )
                         )
                     }
 
-                    if (paketId != null && paketId != 0) {
+                    if (paketId != null && paketId != 0 && paketId != -1) {
                         OutlinedButton(
                             onClick = {
                                 packageToDelete = paket
