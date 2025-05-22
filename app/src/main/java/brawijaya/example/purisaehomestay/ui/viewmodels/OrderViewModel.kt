@@ -2,11 +2,13 @@ package brawijaya.example.purisaehomestay.ui.viewmodels
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.data.repository.CloudinaryRepository
 import brawijaya.example.purisaehomestay.data.repository.PackageRepository
+import brawijaya.example.purisaehomestay.utils.ImageCleanupManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,13 +25,15 @@ data class OrderUiState(
     val selectedPaket: Paket? = null,
     val packageList: List<Paket> = emptyList(),
     val uploadingImage: Boolean = false,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val pendingImageForDeletion: String? = null
 )
 
 @HiltViewModel
 class OrderViewModel @Inject constructor(
     private val repository: PackageRepository,
     private val cloudinaryRepository: CloudinaryRepository,
+    private val imageCleanupManager: ImageCleanupManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -79,7 +83,13 @@ class OrderViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 repository.createPackage(paket)
-                _uiState.update { it.copy(errorMessage = null, isLoading = false) }
+                _uiState.update {
+                    it.copy(
+                        errorMessage = null,
+                        isLoading = false,
+                        pendingImageForDeletion = null
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -95,8 +105,30 @@ class OrderViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
+                val oldPaket = _uiState.value.selectedPaket
                 repository.updatePackage(paket)
-                _uiState.update { it.copy(errorMessage = null, isLoading = false) }
+
+                if (oldPaket != null &&
+                    oldPaket.thumbnail_url != paket.thumbnail_url &&
+                    oldPaket.thumbnail_url?.isNotEmpty() == true
+                ) {
+
+                    viewModelScope.launch {
+                        try {
+                            cloudinaryRepository.deleteImage(oldPaket.thumbnail_url)
+                        } catch (e: Exception) {
+                            Log.e("OrderViewModel", "Failed to delete old image: ${e.message}")
+                        }
+                    }
+                }
+
+                _uiState.update {
+                    it.copy(
+                        errorMessage = null,
+                        isLoading = false,
+                        pendingImageForDeletion = null
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -112,7 +144,19 @@ class OrderViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
+                val paketToDelete = _uiState.value.selectedPaket
                 repository.deletePackage(id)
+
+                if (paketToDelete != null && paketToDelete.thumbnail_url?.isNotEmpty() == true) {
+                    viewModelScope.launch {
+                        try {
+                            cloudinaryRepository.deleteImage(paketToDelete.thumbnail_url)
+                        } catch (e: Exception) {
+                            Log.e("OrderViewModel", "Failed to delete image after package deletion: ${e.message}")
+                        }
+                    }
+                }
+
                 _uiState.update { it.copy(errorMessage = null, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
@@ -129,13 +173,42 @@ class OrderViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(uploadingImage = true) }
             try {
+                val currentPendingImage = _uiState.value.pendingImageForDeletion
+                if (currentPendingImage != null) {
+                    imageCleanupManager.cleanupImage(currentPendingImage)
+                }
+
                 val cloudinaryUrl = cloudinaryRepository.uploadImage(context, uri)
-                _uiState.update { it.copy(imageUrl = cloudinaryUrl, uploadingImage = false) }
+
+                imageCleanupManager.addPendingImage(cloudinaryUrl)
+
+                _uiState.update {
+                    it.copy(
+                        imageUrl = cloudinaryUrl,
+                        uploadingImage = false,
+                        pendingImageForDeletion = cloudinaryUrl
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         errorMessage = "Gagal mengunggah gambar: ${e.message}",
                         uploadingImage = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun cleanupPendingImage() {
+        viewModelScope.launch {
+            val pendingImage = _uiState.value.pendingImageForDeletion
+            if (pendingImage != null) {
+                imageCleanupManager.cleanupImage(pendingImage)
+                _uiState.update {
+                    it.copy(
+                        pendingImageForDeletion = null,
+                        imageUrl = null
                     )
                 }
             }
@@ -156,5 +229,21 @@ class OrderViewModel @Inject constructor(
 
     fun resetImageUrl() {
         _uiState.update { it.copy(imageUrl = null) }
+    }
+
+    fun markImageAsSaved() {
+        val pendingImage = _uiState.value.pendingImageForDeletion
+        if (pendingImage != null) {
+            imageCleanupManager.removePendingImage(pendingImage)
+        }
+        _uiState.update { it.copy(pendingImageForDeletion = null) }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        val pendingImage = _uiState.value.pendingImageForDeletion
+        if (pendingImage != null) {
+            Log.w("OrderViewModel", "ViewModel cleared with pending image: $pendingImage")
+        }
     }
 }
