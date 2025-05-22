@@ -108,7 +108,7 @@ fun AppNavigation(navController: NavHostController) {
             )
         ) { backStackEntry ->
             val paketId = backStackEntry.arguments?.getInt("paketId")
-            val validPaketId = if (paketId != null && paketId > 0) paketId else null
+            val validPaketId = if (paketId != null && paketId != 0) paketId else null
             EditPackageScreen(
                 navController = navController,
                 paketId = validPaketId

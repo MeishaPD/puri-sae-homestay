@@ -278,6 +278,7 @@ fun OrderScreenContent(
             } else {
                 packageList.forEachIndexed { index, paket ->
                     PackageCard(
+                        idx = index + 1,
                         paket = paket,
                         isSelected = selectedPackage == paket.id,
                         onSelect = { onPackageSelected(paket.id) }

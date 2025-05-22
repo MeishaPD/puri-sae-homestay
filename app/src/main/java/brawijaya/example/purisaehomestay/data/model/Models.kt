@@ -27,13 +27,26 @@ data class PackageData(
 )
 
 data class Paket(
-    val id: Int,
+    val id: Int = 0,
     val title: String = "",
-    val features: List<String>,
-    val weekdayPrice: Double = 0.0,
-    val weekendPrice: Double = 0.0,
-    val imageUrl: Int? = null,
-)
+    val features: List<String> = emptyList(),
+    val price_weekday: Double = 0.0,
+    val price_weekend: Double = 0.0,
+    val thumbnail_url : String? = null,
+    val bungalowQty: Int = 1,
+    val jogloQty: Int = 0
+) {
+    constructor() : this(
+        id = 0,
+        title = "",
+        features = emptyList(),
+        price_weekday = 0.0,
+        price_weekend = 0.0,
+        thumbnail_url = null,
+        bungalowQty = 0,
+        jogloQty = 0
+    )
+}
 
 data class HomestayRequirement(
     val homestayId: String = "",

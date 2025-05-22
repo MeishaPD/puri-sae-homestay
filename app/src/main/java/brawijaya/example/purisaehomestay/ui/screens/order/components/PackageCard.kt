@@ -18,23 +18,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import java.text.NumberFormat
 import java.util.Locale
+import brawijaya.example.purisaehomestay.R
 
 @Composable
 fun PackageCard(
+    idx: Int,
     paket: Paket,
     isSelected: Boolean,
     onSelect: () -> Unit
 ) {
     val numberFormat = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     numberFormat.maximumFractionDigits = 0
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier
@@ -52,22 +58,25 @@ fun PackageCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Row {
-                paket.imageUrl?.let { painter ->
-                    Image(
-                        painter = painterResource(id = painter),
-                        contentDescription = paket.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(140.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    )
-                } ?: run {
-                    Spacer(
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp, vertical = 8.dp)
-                    )
-                }
+                Image(
+                    painter = paket.thumbnail_url?.let {
+                        rememberAsyncImagePainter(
+                            ImageRequest.Builder(context)
+                                .data(data = it)
+                                .apply(block = {
+                                    crossfade(true)
+                                    placeholder(R.drawable.bungalow_single)
+                                })
+                                .build()
+                        )
+                    } ?: painterResource(id = R.drawable.bungalow_single),
+                    contentDescription = paket.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(140.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                )
 
                 LazyColumn(
                     modifier = Modifier
@@ -104,17 +113,17 @@ fun PackageCard(
                     item {
                         Text(
                             text = "${
-                                numberFormat.format(paket.weekdayPrice).replace("Rp", "Rp ")
+                                numberFormat.format(paket.price_weekday).replace("Rp", "Rp ")
                             }/malam (weekday)",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             modifier = Modifier.padding(top = 4.dp)
                         )
 
-                        if (paket.weekendPrice > 0) {
+                        if (paket.price_weekend > 0) {
                             Text(
                                 text = "${
-                                    numberFormat.format(paket.weekendPrice).replace("Rp", "Rp ")
+                                    numberFormat.format(paket.price_weekend).replace("Rp", "Rp ")
                                 } (weekend/holiday)",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
@@ -139,7 +148,7 @@ fun PackageCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = paket.id.toString(),
+                    text = idx.toString(),
                     style = MaterialTheme.typography.titleLarge,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
