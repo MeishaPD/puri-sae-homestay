@@ -60,20 +60,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.ui.components.GeneralDialog
 import brawijaya.example.purisaehomestay.ui.components.ImageUploader
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.viewmodels.CloudinaryViewModel
-import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
+import brawijaya.example.purisaehomestay.ui.viewmodels.PackageViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditPackageScreen(
     navController: NavController,
-    viewModel: OrderViewModel = hiltViewModel(),
+    viewModel: PackageViewModel = hiltViewModel(),
     cldViewModel: CloudinaryViewModel = hiltViewModel(),
     paketId: Int? = null
 ) {

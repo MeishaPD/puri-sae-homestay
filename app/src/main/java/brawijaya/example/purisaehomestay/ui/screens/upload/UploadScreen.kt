@@ -52,15 +52,14 @@ fun UploadScreen(
 ) {
     val cloudinaryState by cloudinaryViewModel.uiState.collectAsState()
 
-    // Handle upload completion and navigate back
     LaunchedEffect(cloudinaryState.imageUrl) {
         cloudinaryState.imageUrl?.let { url ->
             onImageUploaded(url)
+            navController.previousBackStackEntry?.savedStateHandle?.set("uploaded_image_url", url)
             navController.popBackStack()
         }
     }
 
-    // Reset state when screen is opened
     LaunchedEffect(Unit) {
         cloudinaryViewModel.resetState()
     }
@@ -124,35 +123,6 @@ fun UploadScreen(
                 },
                 isUploading = cloudinaryState.isUploading
             )
-
-            // Show upload progress
-            if (cloudinaryState.isUploading) {
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator(
-                        progress = cloudinaryState.uploadProgress,
-                        color = PrimaryGold,
-                        modifier = Modifier.size(48.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Mengunggah gambar...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = PrimaryGold
-                    )
-
-                    Text(
-                        text = "${(cloudinaryState.uploadProgress * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                }
-            }
 
             // Show success message briefly before navigating back
             if (cloudinaryState.imageUrl != null && !cloudinaryState.isUploading) {

@@ -24,7 +24,7 @@ data class PackageUiState(
 )
 
 @HiltViewModel
-class OrderViewModel @Inject constructor(
+class PackageViewModel @Inject constructor(
     private val repository: PackageRepository,
     private val cloudinaryRepository: CloudinaryRepository,
     @ApplicationContext private val context: Context

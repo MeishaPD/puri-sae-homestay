@@ -158,3 +158,41 @@ data class Order(
     val amountToBePaid: Int? = null,
     val imageResId: Int
 )
+
+data class OrderData(
+    val check_in: Timestamp = Timestamp.now(),
+    val check_out: Timestamp = Timestamp.now(),
+    val guestName: String = "",
+    val guestPhone: String = "",
+    val guestQty: Int = 1,
+    val jogloQty: Int = 0,
+    val bungalowQty: Int = 0,
+    val numberOfNights: Int = 1,
+    val occupiedDates: List<String> = emptyList(),
+    val packageRef: String = "",
+    val paidAmount: Double = 0.0,
+    val paymentStatus: Boolean = false,
+    val paymentUrl: String = "",
+    val pricePerNight: Double = 0.0,
+    val totalPrice: Double = 0.0,
+    val userRef: String = ""
+) {
+    constructor() : this(
+        check_in = Timestamp.now(),
+        check_out = Timestamp.now(),
+        guestName = "",
+        guestPhone = "",
+        guestQty = 1,
+        jogloQty = 0,
+        bungalowQty = 0,
+        numberOfNights = 1,
+        occupiedDates = emptyList(),
+        packageRef = "",
+        paidAmount = 0.0,
+        paymentStatus = false,
+        paymentUrl = "",
+        pricePerNight = 0.0,
+        totalPrice = 0.0,
+        userRef = ""
+    )
+}

@@ -45,15 +45,15 @@ import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.components.EmptyPackageList
 import brawijaya.example.purisaehomestay.ui.screens.order.components.PackageCard
 import brawijaya.example.purisaehomestay.ui.viewmodels.PackageUiState
-import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import brawijaya.example.purisaehomestay.ui.viewmodels.PackageViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManagePackageScreen(
     navController: NavController,
-    viewModel: OrderViewModel = hiltViewModel()
+    viewModel: PackageViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
