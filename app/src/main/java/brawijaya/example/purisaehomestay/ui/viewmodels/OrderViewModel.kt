@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.data.model.Paket
-import brawijaya.example.purisaehomestay.data.repository.CloudinaryRepository
 import brawijaya.example.purisaehomestay.data.repository.OrderRepository
 import brawijaya.example.purisaehomestay.data.repository.PackageRepository
 import com.google.firebase.Timestamp
@@ -18,7 +17,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
@@ -33,22 +31,19 @@ data class OrderUiState(
     val showPaymentDialog: Boolean = false,
     val orderList: List<OrderData> = emptyList(),
     val availablePackages: List<Paket> = emptyList(),
-    val selectedPaket: Paket? = null
+    val selectedPaket: Paket? = null,
+    val currentOrderId: String = ""
 )
 
 @HiltViewModel
 class OrderViewModel @Inject constructor(
     private val packageRepository: PackageRepository,
     private val orderRepository: OrderRepository,
-    private val cloudinaryRepository: CloudinaryRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrderUiState())
     val uiState: StateFlow<OrderUiState> = _uiState.asStateFlow()
-
-    private var _currentOrderId: String = ""
-    val currentOrderId: String get() = _currentOrderId
 
     init {
         observeOrders()
@@ -183,10 +178,9 @@ class OrderViewModel @Inject constructor(
                 )
 
                 val orderId = orderRepository.createOrder(orderData)
-                _currentOrderId = orderId
-
                 _uiState.update {
                     it.copy(
+                        currentOrderId = orderId,
                         isCreatingOrder = false,
                         successMessage = "Order created successfully",
                         showPaymentDialog = true
@@ -202,6 +196,14 @@ class OrderViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun setShowPaymentDialog(show: Boolean) {
+        _uiState.update { it.copy(showPaymentDialog = show) }
+    }
+
+    fun setCurrentOrderId(orderId: String) {
+        _uiState.update { it.copy(currentOrderId = orderId) }
     }
 
     fun verifyPayment(orderId: String, paidAmount: Double) {
@@ -274,10 +276,11 @@ class OrderViewModel @Inject constructor(
     }
 
     fun updatePaymentUrl(imageUrl: String) {
-        if (_currentOrderId.isNotEmpty()) {
+        val orderId = _uiState.value.currentOrderId
+        if (orderId.isNotEmpty()) {
             viewModelScope.launch {
                 try {
-                    orderRepository.updatePaymentUrl(_currentOrderId, imageUrl)
+                    orderRepository.updatePaymentUrl(orderId, imageUrl)
                     _uiState.update {
                         it.copy(
                             successMessage = "Payment URL updated successfully",

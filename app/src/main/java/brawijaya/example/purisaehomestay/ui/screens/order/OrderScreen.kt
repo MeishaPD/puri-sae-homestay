@@ -59,6 +59,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.Order
+import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.ui.components.BottomNavigation
 import brawijaya.example.purisaehomestay.ui.components.DateRangePicker
@@ -71,6 +72,7 @@ import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
 import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileUiState
 import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileViewModel
 import brawijaya.example.purisaehomestay.utils.DateUtils
+import com.google.firebase.Timestamp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -265,19 +267,27 @@ fun OrderScreen(
                 )
 
                 if (uiState.showPaymentDialog) {
-                    val inProcessOrder = remember {
-                        Order(
-                            date = DateUtils.parseDate("18/04/2025") ?: DateUtils.getCurrentDate(),
-                            isPaid = false,
-                            title = "Paket Pemesanan",
-                            totalPrice = 500000,
-                            amountToBePaid = 1500000,
-                            imageResId = R.drawable.bungalow_group
-                        )
-                    }
+                    val inProcessOrderData = OrderData(
+                        check_in = Timestamp(DateUtils.parseDate("18/04/2025") ?: DateUtils.getCurrentDate()),
+                        check_out = Timestamp(DateUtils.parseDate("19/04/2025") ?: DateUtils.getCurrentDate()), // Assuming 1-night stay
+                        guestName = "Tamu Default",
+                        guestPhone = "081234567890",
+                        guestQty = 2,
+                        jogloQty = 0,
+                        bungalowQty = 1,
+                        numberOfNights = 1,
+                        occupiedDates = listOf("2025-04-18"),
+                        packageRef = "bungalow_paket_01",
+                        paidAmount = 500000.0,
+                        paymentStatus = false,
+                        paymentUrl = "",
+                        pricePerNight = 1500000.0,
+                        totalPrice = 1500000.0,
+                        userRef = "user_default"
+                    )
 
                     PaymentDialog(
-                        order = inProcessOrder,
+                        order = inProcessOrderData,
                         onDismiss = { viewModel.dismissPaymentDialog() },
                         onUploadClicked = {
                             navController.navigate(Screen.UploadPayment.route)

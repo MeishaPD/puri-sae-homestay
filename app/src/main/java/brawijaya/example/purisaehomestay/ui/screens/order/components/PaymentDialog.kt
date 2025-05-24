@@ -33,13 +33,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import brawijaya.example.purisaehomestay.data.model.Order
+import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
 fun PaymentDialog(
-    order: Order,
+    order: OrderData,
     onDismiss: () -> Unit,
     onUploadClicked: () -> Unit
 ) {
@@ -213,7 +214,7 @@ fun PaymentDialog(
                     )
 
                     Text(
-                        text = order.amountToBePaid?.let {
+                        text = order.totalPrice?.let {
                             numberFormat.format(it).replace("Rp", "Rp ")
                         } ?: "Rp 0",
                         style = MaterialTheme.typography.labelSmall.copy(
@@ -233,7 +234,7 @@ fun PaymentDialog(
                     contentAlignment = Alignment.CenterEnd
                 ) {
                     Text(
-                        text = order.amountToBePaid?.let {
+                        text = order.totalPrice?.let {
                             numberFormat.format(it).replace("Rp", "Rp ")
                         } ?: "Rp 0",
                         style = MaterialTheme.typography.labelSmall.copy(
