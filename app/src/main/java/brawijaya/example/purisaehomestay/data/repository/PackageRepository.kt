@@ -39,7 +39,7 @@ class PackageRepository @Inject constructor(
                 }
             } ?: emptyList()
 
-            Log.d("REPOSITORY", "Pacakage list: ${packageList}")
+            Log.d("REPOSITORY", "Package list: ${packageList}")
 
             trySend(packageList)
         }
