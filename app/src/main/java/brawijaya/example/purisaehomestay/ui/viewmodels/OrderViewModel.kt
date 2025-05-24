@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.model.PaymentVerificationStage
 import brawijaya.example.purisaehomestay.data.repository.OrderRepository
 import brawijaya.example.purisaehomestay.data.repository.PackageRepository
 import com.google.firebase.Timestamp
@@ -152,11 +153,7 @@ class OrderViewModel @Inject constructor(
                 val pricePerNight = selectedPackage.price_weekday
                 val totalPrice = pricePerNight * numberOfNights
 
-                val paidAmount = when (paymentType) {
-                    "Pembayaran DP 25%" -> totalPrice * 0.25
-                    "Pembayaran Lunas" -> totalPrice
-                    else -> 0.0
-                }
+                val verifyStage = if (paymentType == "Pembayaran Lunas") PaymentVerificationStage.LUNAS else PaymentVerificationStage.DP
 
                 val orderData = OrderData(
                     check_in = Timestamp(checkIn),
@@ -169,11 +166,13 @@ class OrderViewModel @Inject constructor(
                     numberOfNights = numberOfNights,
                     occupiedDates = emptyList(),
                     packageRef = packageRef,
-                    paidAmount = paidAmount,
-                    paymentStatus = false,
-                    paymentUrl = "",
+                    paidAmount = 0.0,
+                    paymentStatus = 0,
+                    paymentType = paymentType,
+                    paymentUrls = emptyList(),
                     pricePerNight = pricePerNight,
                     totalPrice = totalPrice,
+                    paymentVerificationStage = verifyStage,
                     userRef = userRef ?: ""
                 )
 
@@ -206,11 +205,32 @@ class OrderViewModel @Inject constructor(
         _uiState.update { it.copy(currentOrderId = orderId) }
     }
 
-    fun verifyPayment(orderId: String, paidAmount: Double) {
+    fun verifyPayment(orderId: String, isFirstPayment: Boolean = true) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                orderRepository.verifyPayment(orderId, paidAmount)
+                val order = orderRepository.getOrderById(orderId)
+                val newPaidAmount: Double
+                val newPaymentStatus: Int
+
+                when (order?.paymentType) {
+                    "Pembayaran DP 25%" -> {
+                        if (isFirstPayment) {
+                            newPaidAmount = order.totalPrice * 0.25
+                            newPaymentStatus = 1 // Partial paid
+                        } else {
+                            newPaidAmount = order.totalPrice // Full payment
+                            newPaymentStatus = 2 // Fully paid
+                        }
+                    }
+                    "Pembayaran Lunas" -> {
+                        newPaidAmount = order.totalPrice
+                        newPaymentStatus = 2
+                    }
+                    else -> throw Exception("Invalid payment type")
+                }
+
+                orderRepository.verifyPayment(orderId, newPaidAmount, newPaymentStatus)
                 _uiState.update {
                     it.copy(
                         isLoading = false,

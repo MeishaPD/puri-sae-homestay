@@ -42,7 +42,6 @@ import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
 import com.google.firebase.auth.FirebaseAuth
-import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,7 +124,7 @@ fun ActivityScreen(
             if (uiState.showPaymentDialog) {
                 // Find the current order to show in dialog
                 val currentOrder = uiState.orderList.find { order ->
-                    !order.paymentStatus // Show dialog for unpaid orders
+                    order.paymentStatus != 3 // Show dialog for unpaid orders
                 }
 
                 currentOrder?.let { order ->
@@ -147,15 +146,14 @@ fun ActivityContent(
     orders: List<OrderData>,
     onShowPaymentDialog: (String) -> Unit
 ) {
-    val inProcessOrders = orders.filter { !it.paymentStatus }
-    val historyOrders = orders.filter { it.paymentStatus }
+    val inProcessOrders = orders.filter { it.paymentStatus == 3 }
+    val historyOrders = orders.filter { it.paymentStatus != 3 }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // In Process Orders Section
         if (inProcessOrders.isNotEmpty()) {
             Text(
                 text = "Dalam Proses",
@@ -169,7 +167,7 @@ fun ActivityContent(
             inProcessOrders.forEach { order ->
                 HistoryCard(
                     date = order.check_in.toDate(),
-                    isPaid = order.paymentStatus,
+                    isPaid = order.paymentStatus == 3,
                     imageUrl = painterResource(id = getImageResourceForOrder(order)),
                     title = getOrderTitle(order),
                     totalPrice = order.totalPrice.toInt(),
@@ -196,7 +194,7 @@ fun ActivityContent(
             historyOrders.forEachIndexed { index, order ->
                 HistoryCard(
                     date = order.check_in.toDate(),
-                    isPaid = order.paymentStatus,
+                    isPaid = order.paymentStatus == 3,
                     imageUrl = painterResource(id = getImageResourceForOrder(order)),
                     title = getOrderTitle(order),
                     totalPrice = order.totalPrice.toInt()

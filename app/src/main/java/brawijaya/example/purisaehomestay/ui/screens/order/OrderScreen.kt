@@ -73,6 +73,7 @@ import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileUiState
 import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileViewModel
 import brawijaya.example.purisaehomestay.utils.DateUtils
 import com.google.firebase.Timestamp
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,6 +95,8 @@ fun OrderScreen(
     var guestName by remember { mutableStateOf("") }
     var guestPhone by remember { mutableStateOf("") }
 
+    var selectedPaymentOption by remember { mutableStateOf("Jenis Pembayaran") }
+
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
     savedStateHandle?.getLiveData<String>("uploaded_image_url")?.observe(
         LocalLifecycleOwner.current
@@ -113,7 +116,10 @@ fun OrderScreen(
     }
 
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
-        viewModel.clearMessages()
+        if (uiState.errorMessage != null || uiState.successMessage != null) {
+            delay(3000)
+            viewModel.clearMessages()
+        }
     }
 
     val updateCheckInDate = { date: String ->
@@ -261,15 +267,17 @@ fun OrderScreen(
                             guestCount = guestCount,
                             selectedPackageId = selectedPackageId,
                             paymentType = paymentType,
-                            userRef = profileViewModel.getCurrentUserRef()
+                            userRef = profileViewModel.getCurrentUserRef(),
                         )
-                    }
+                    },
+                    selectedPaymentOption = selectedPaymentOption,
+                    onSelectedPaymentOptionChange = { selectedPaymentOption = it }
                 )
 
                 if (uiState.showPaymentDialog) {
                     val inProcessOrderData = OrderData(
                         check_in = Timestamp(DateUtils.parseDate("18/04/2025") ?: DateUtils.getCurrentDate()),
-                        check_out = Timestamp(DateUtils.parseDate("19/04/2025") ?: DateUtils.getCurrentDate()), // Assuming 1-night stay
+                        check_out = Timestamp(DateUtils.parseDate("19/04/2025") ?: DateUtils.getCurrentDate()),
                         guestName = "Tamu Default",
                         guestPhone = "081234567890",
                         guestQty = 2,
@@ -278,9 +286,10 @@ fun OrderScreen(
                         numberOfNights = 1,
                         occupiedDates = listOf("2025-04-18"),
                         packageRef = "bungalow_paket_01",
-                        paidAmount = 500000.0,
-                        paymentStatus = false,
-                        paymentUrl = "",
+                        paidAmount = 0.0, // Default to 0
+                        paymentStatus = 0, // Unpaid
+                        paymentType = selectedPaymentOption,
+                        paymentUrls = emptyList(),
                         pricePerNight = 1500000.0,
                         totalPrice = 1500000.0,
                         userRef = "user_default"
@@ -318,10 +327,11 @@ fun OrderScreenContent(
     onGuestPhoneChange: (String) -> Unit = {},
     hasSelectedDateRange: Boolean = false,
     isCreatingOrder: Boolean = false,
-    onCreateOrder: (String) -> Unit = {}
+    onCreateOrder: (String) -> Unit = {},
+    selectedPaymentOption: (String),
+    onSelectedPaymentOptionChange: (String) -> Unit
 ) {
     var dropdownExpanded by remember { mutableStateOf(false) }
-    var selectedPaymentOption by remember { mutableStateOf("Jenis Pembayaran") }
 
     Box(
         modifier = Modifier
@@ -544,7 +554,7 @@ fun OrderScreenContent(
                                 Text("Pembayaran DP 25%")
                             },
                             onClick = {
-                                selectedPaymentOption = "Pembayaran DP 25%"
+                                onSelectedPaymentOptionChange("Pembayaran DP 25%")
                                 dropdownExpanded = false
                             }
                         )
@@ -553,7 +563,7 @@ fun OrderScreenContent(
                                 Text("Pembayaran Lunas")
                             },
                             onClick = {
-                                selectedPaymentOption = "Pembayaran Lunas"
+                                onSelectedPaymentOptionChange("Pembayaran Lunas")
                                 dropdownExpanded = false
                             }
                         )
@@ -570,6 +580,7 @@ fun OrderScreenContent(
                             if (guestName.isNotBlank() && guestPhone.isNotBlank() &&
                                 guestCount.isNotBlank() && checkInDate.isNotBlank() &&
                                 checkOutDate.isNotBlank() && selectedPaymentOption != "Jenis Pembayaran") {
+                                Log.d("DAMM", "TESTING")
                                 onCreateOrder(selectedPaymentOption)
                             }
                         } else {

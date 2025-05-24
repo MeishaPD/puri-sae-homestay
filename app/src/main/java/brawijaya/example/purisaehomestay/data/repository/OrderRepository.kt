@@ -3,9 +3,11 @@ package brawijaya.example.purisaehomestay.data.repository
 import android.util.Log
 import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.model.PaymentVerificationStage
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObject
+import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -181,13 +183,23 @@ class OrderRepository @Inject constructor(
     /**
      * Memverifikasi pembayaran
      */
-    suspend fun verifyPayment(orderId: String, paidAmount: Double) {
+    suspend fun verifyPayment(orderId: String, paidAmount: Double, paymentStatus: Int) {
         try {
             val orderDoc = orderCollection.document(orderId)
+
+            val currentOrder = getOrderById(orderId)
+            val verificationStage = when {
+                currentOrder?.paymentType == "Pembayaran Lunas" && paymentStatus == 2 -> PaymentVerificationStage.LUNAS
+                currentOrder?.paymentType == "Pembayaran DP 25%" && paymentStatus == 1 -> PaymentVerificationStage.DP
+                currentOrder?.paymentType == "Pembayaran DP 25%" && paymentStatus == 2 -> PaymentVerificationStage.LUNAS
+                else -> PaymentVerificationStage.NONE
+            }
+
             orderDoc.update(
                 mapOf(
-                    "paymentStatus" to true,
-                    "paidAmount" to paidAmount
+                    "paymentStatus" to paymentStatus,
+                    "paidAmount" to paidAmount,
+                    "paymentVerificationStage" to verificationStage.name
                 )
             ).await()
         } catch (e: Exception) {
@@ -201,7 +213,7 @@ class OrderRepository @Inject constructor(
     suspend fun updatePaymentUrl(orderId: String, paymentUrl: String) {
         try {
             val orderDoc = orderCollection.document(orderId)
-            orderDoc.update("paymentUrl", paymentUrl).await()
+            orderDoc.update("paymentUrls", FieldValue.arrayUnion(paymentUrl)).await()
         } catch (e: Exception) {
             throw Exception("Failed to update payment URL: ${e.message}")
         }

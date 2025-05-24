@@ -159,6 +159,15 @@ data class Order(
     val imageResId: Int
 )
 
+enum class PaymentVerificationStage {
+    NONE,    // No payment submitted yet
+    DP,      // DP payment submitted, waiting for admin verification
+    SISA,    // Remaining payment submitted, waiting for admin verification
+    LUNAS,    // Fully paid and verified
+    COMPLETED,   // Order completed
+    REJECTED  // Order Rejected
+}
+
 data class OrderData(
     val check_in: Timestamp = Timestamp.now(),
     val check_out: Timestamp = Timestamp.now(),
@@ -171,11 +180,13 @@ data class OrderData(
     val occupiedDates: List<String> = emptyList(),
     val packageRef: String = "",
     val paidAmount: Double = 0.0,
-    val paymentStatus: Boolean = false,
-    val paymentUrl: String = "",
+    val paymentStatus: Int = 0, // 0 = unpaid, 1 = DP, 2 = fully paid, 3 = completed
+    val paymentType: String = "",
+    val paymentUrls: List<String> = emptyList(), // For DP: [firstPaymentUrl, secondPaymentUrl], For Lunas: [paymentUrl]
+    val paymentVerificationStage: PaymentVerificationStage = PaymentVerificationStage.NONE,
     val pricePerNight: Double = 0.0,
     val totalPrice: Double = 0.0,
-    val userRef: String = ""
+    val userRef: String = "",
 ) {
     constructor() : this(
         check_in = Timestamp.now(),
@@ -189,8 +200,10 @@ data class OrderData(
         occupiedDates = emptyList(),
         packageRef = "",
         paidAmount = 0.0,
-        paymentStatus = false,
-        paymentUrl = "",
+        paymentStatus = 0,
+        paymentType = "",
+        paymentUrls = emptyList(),
+        paymentVerificationStage = PaymentVerificationStage.NONE,
         pricePerNight = 0.0,
         totalPrice = 0.0,
         userRef = ""
