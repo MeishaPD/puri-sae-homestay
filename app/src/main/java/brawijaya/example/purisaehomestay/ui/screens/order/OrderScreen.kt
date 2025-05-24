@@ -287,7 +287,6 @@ fun OrderScreen(
                         occupiedDates = listOf("2025-04-18"),
                         packageRef = "bungalow_paket_01",
                         paidAmount = 0.0, // Default to 0
-                        paymentStatus = 0, // Unpaid
                         paymentType = selectedPaymentOption,
                         paymentUrls = emptyList(),
                         pricePerNight = 1500000.0,

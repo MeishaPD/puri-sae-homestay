@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import java.text.NumberFormat
 import java.util.Date
@@ -30,7 +31,7 @@ import java.util.Locale
 @Composable
 fun HistoryCard(
     date: Date,
-    isPaid: Boolean? = true,
+    paymentStatus: PaymentStatusStage,
     imageUrl: Painter,
     title: String,
     totalPrice: Int,
@@ -40,6 +41,9 @@ fun HistoryCard(
     val formattedDate = DateUtils.formatDate(date)
     val numberFormat = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     numberFormat.maximumFractionDigits = 0
+
+    val isPaid = paymentStatus === PaymentStatusStage.COMPLETED
+    val isOnVerification = paymentStatus === PaymentStatusStage.DP || paymentStatus === PaymentStatusStage.LUNAS || paymentStatus === PaymentStatusStage.SISA
 
     Column(
         modifier = Modifier
@@ -136,23 +140,55 @@ fun HistoryCard(
                             .fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = "Jumlah yang harus dilunasi",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = Color.Red,
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 12.sp
-                            ),
-                        )
-
-                        Text(
-                            text = numberFormat.format(amountToBePaid).replace("Rp", "Rp "),
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                color = Color.Red,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
+                        if (isOnVerification) {
+                            Text(
+                                text = "Jumlah yang sedang diverifikasi",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = Color.Gray,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = 12.sp
+                                ),
                             )
-                        )
+
+                            if (paymentStatus === PaymentStatusStage.SISA) {
+                                Text(
+                                    text = numberFormat.format(amountToBePaid).replace("Rp", "Rp "),
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        color = Color.Gray,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                )
+                            } else {
+                                Text(
+                                    text = numberFormat.format(totalPrice * 0.25).replace("Rp", "Rp "),
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        color = Color.Gray,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                )
+                            }
+
+                        } else {
+                            Text(
+                                text = "Jumlah yang harus dilunasi",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = Color.Red,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = 12.sp
+                                ),
+                            )
+
+                            Text(
+                                text = numberFormat.format(amountToBePaid).replace("Rp", "Rp "),
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    color = Color.Red,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            )
+                        }
                     }
                 }
             }
@@ -167,6 +203,7 @@ fun HistoryCard(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryGold
                 ),
+                enabled = paymentStatus === PaymentStatusStage.WAITING,
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(

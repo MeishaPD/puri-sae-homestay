@@ -3,7 +3,7 @@ package brawijaya.example.purisaehomestay.data.repository
 import android.util.Log
 import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.data.model.Paket
-import brawijaya.example.purisaehomestay.data.model.PaymentVerificationStage
+import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObject
@@ -39,7 +39,7 @@ class OrderRepository @Inject constructor(
 
             val orderList = snapshot?.documents?.mapNotNull { document ->
                 try {
-                    document.toObject<OrderData>()
+                    document.toObject<OrderData>()?.copy(documentId = document.id)
                 } catch (e: Exception) {
                     Log.e("OrderRepository", "Error parsing order: ${e.message}")
                     null
@@ -183,23 +183,22 @@ class OrderRepository @Inject constructor(
     /**
      * Memverifikasi pembayaran
      */
-    suspend fun verifyPayment(orderId: String, paidAmount: Double, paymentStatus: Int) {
+    suspend fun verifyPayment(orderId: String, paidAmount: Double, paymentStatus: PaymentStatusStage) {
         try {
             val orderDoc = orderCollection.document(orderId)
 
             val currentOrder = getOrderById(orderId)
-            val verificationStage = when {
-                currentOrder?.paymentType == "Pembayaran Lunas" && paymentStatus == 2 -> PaymentVerificationStage.LUNAS
-                currentOrder?.paymentType == "Pembayaran DP 25%" && paymentStatus == 1 -> PaymentVerificationStage.DP
-                currentOrder?.paymentType == "Pembayaran DP 25%" && paymentStatus == 2 -> PaymentVerificationStage.LUNAS
-                else -> PaymentVerificationStage.NONE
+            val paymentStage = when {
+                currentOrder?.paymentType == "Pembayaran Lunas" && paymentStatus === PaymentStatusStage.LUNAS  -> PaymentStatusStage.COMPLETED
+                currentOrder?.paymentType == "Pembayaran DP 25%" && paymentStatus === PaymentStatusStage.DP -> PaymentStatusStage.WAITING
+                currentOrder?.paymentType == "Pembayaran DP 25%" && paymentStatus === PaymentStatusStage.LUNAS -> PaymentStatusStage.COMPLETED
+                else -> PaymentStatusStage.NONE
             }
 
             orderDoc.update(
                 mapOf(
-                    "paymentStatus" to paymentStatus,
+                    "paymentStatus" to paymentStage,
                     "paidAmount" to paidAmount,
-                    "paymentVerificationStage" to verificationStage.name
                 )
             ).await()
         } catch (e: Exception) {
@@ -220,6 +219,28 @@ class OrderRepository @Inject constructor(
     }
 
     /**
+     * Complete payment
+     */
+    suspend fun DPPayment(orderId: String, paymentUrl: String) {
+        try {
+            val orderDoc = orderCollection.document(orderId)
+            val currentOrder = getOrderById(orderId) ?: throw Exception("Order not found")
+
+            val updatedPaymentUrls = currentOrder.paymentUrls.toMutableList()
+            updatedPaymentUrls.add(paymentUrl)
+
+            orderDoc.update(
+                mapOf(
+                    "paymentStatus" to PaymentStatusStage.SISA,
+                    "paymentUrls" to updatedPaymentUrls
+                )
+            ).await()
+        } catch (e: Exception) {
+            throw Exception("Failed to complete payment: ${e.message}")
+        }
+    }
+
+    /**
      * Mengambil pesanan berdasarkan user
      */
     suspend fun getOrdersByUser(userRef: String): List<OrderData> {
@@ -231,7 +252,7 @@ class OrderRepository @Inject constructor(
 
             snapshot.documents.mapNotNull { document ->
                 try {
-                    document.toObject<OrderData>()
+                    document.toObject<OrderData>()?.copy(documentId = document.id)
                 } catch (e: Exception) {
                     Log.e("OrderRepository", "Error parsing user order: ${e.message}")
                     null

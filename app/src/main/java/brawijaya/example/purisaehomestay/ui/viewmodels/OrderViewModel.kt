@@ -1,11 +1,12 @@
 package brawijaya.example.purisaehomestay.ui.viewmodels
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.data.model.Paket
-import brawijaya.example.purisaehomestay.data.model.PaymentVerificationStage
+import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
 import brawijaya.example.purisaehomestay.data.repository.OrderRepository
 import brawijaya.example.purisaehomestay.data.repository.PackageRepository
 import com.google.firebase.Timestamp
@@ -153,7 +154,7 @@ class OrderViewModel @Inject constructor(
                 val pricePerNight = selectedPackage.price_weekday
                 val totalPrice = pricePerNight * numberOfNights
 
-                val verifyStage = if (paymentType == "Pembayaran Lunas") PaymentVerificationStage.LUNAS else PaymentVerificationStage.DP
+                val paymentStage = if (paymentType == "Pembayaran Lunas") PaymentStatusStage.LUNAS else PaymentStatusStage.DP
 
                 val orderData = OrderData(
                     check_in = Timestamp(checkIn),
@@ -167,16 +168,17 @@ class OrderViewModel @Inject constructor(
                     occupiedDates = emptyList(),
                     packageRef = packageRef,
                     paidAmount = 0.0,
-                    paymentStatus = 0,
                     paymentType = paymentType,
                     paymentUrls = emptyList(),
                     pricePerNight = pricePerNight,
                     totalPrice = totalPrice,
-                    paymentVerificationStage = verifyStage,
+                    paymentStatus = paymentStage,
                     userRef = userRef ?: ""
                 )
 
                 val orderId = orderRepository.createOrder(orderData)
+                Log.d("ViewModel", "CurrentOrderId: ${orderId}")
+
                 _uiState.update {
                     it.copy(
                         currentOrderId = orderId,
@@ -197,35 +199,27 @@ class OrderViewModel @Inject constructor(
         }
     }
 
-    fun setShowPaymentDialog(show: Boolean) {
-        _uiState.update { it.copy(showPaymentDialog = show) }
-    }
-
-    fun setCurrentOrderId(orderId: String) {
-        _uiState.update { it.copy(currentOrderId = orderId) }
-    }
-
     fun verifyPayment(orderId: String, isFirstPayment: Boolean = true) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val order = orderRepository.getOrderById(orderId)
                 val newPaidAmount: Double
-                val newPaymentStatus: Int
+                val newPaymentStatus: PaymentStatusStage
 
                 when (order?.paymentType) {
                     "Pembayaran DP 25%" -> {
                         if (isFirstPayment) {
                             newPaidAmount = order.totalPrice * 0.25
-                            newPaymentStatus = 1 // Partial paid
+                            newPaymentStatus = PaymentStatusStage.WAITING // Partial paid
                         } else {
                             newPaidAmount = order.totalPrice // Full payment
-                            newPaymentStatus = 2 // Fully paid
+                            newPaymentStatus = PaymentStatusStage.COMPLETED // Fully paid
                         }
                     }
                     "Pembayaran Lunas" -> {
                         newPaidAmount = order.totalPrice
-                        newPaymentStatus = 2
+                        newPaymentStatus = PaymentStatusStage.COMPLETED
                     }
                     else -> throw Exception("Invalid payment type")
                 }
@@ -317,6 +311,46 @@ class OrderViewModel @Inject constructor(
             }
         }
     }
+
+    fun updateDPImageUrl(imageUrl: String) {
+        val orderId = _uiState.value.currentOrderId
+        if (orderId.isNotEmpty()) {
+            viewModelScope.launch {
+                try {
+                    _uiState.update { it.copy(isLoading = true) }
+
+                    orderRepository.DPPayment(orderId, imageUrl)
+
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            successMessage = "Payment completed successfully",
+                            showPaymentDialog = false,
+                            currentOrderId = ""
+                        )
+                    }
+                } catch (e: Exception) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Failed to complete payment: ${e.message}"
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+
+    fun setShowPaymentDialog(show: Boolean) {
+        _uiState.update { it.copy(showPaymentDialog = show) }
+    }
+
+    fun setCurrentOrderId(orderId: String) {
+        Log.d("ViewModel", "CurrentOrderId: ${orderId}")
+        _uiState.update { it.copy(currentOrderId = orderId) }
+    }
+
 
     fun dismissPaymentDialog() {
         _uiState.update { it.copy(showPaymentDialog = false) }

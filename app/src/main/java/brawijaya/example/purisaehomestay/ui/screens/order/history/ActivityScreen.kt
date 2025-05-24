@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.OrderData
+import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.order.components.HistoryCard
 import brawijaya.example.purisaehomestay.ui.screens.order.components.PaymentDialog
@@ -63,7 +64,7 @@ fun ActivityScreen(
         LocalLifecycleOwner.current
     ) { imageUrl ->
         imageUrl?.let {
-            viewModel.updatePaymentUrl(it)
+            viewModel.updateDPImageUrl(it)
         }
     }
 
@@ -122,9 +123,8 @@ fun ActivityScreen(
             }
 
             if (uiState.showPaymentDialog) {
-                // Find the current order to show in dialog
                 val currentOrder = uiState.orderList.find { order ->
-                    order.paymentStatus != 3 // Show dialog for unpaid orders
+                    order.documentId == uiState.currentOrderId
                 }
 
                 currentOrder?.let { order ->
@@ -146,14 +146,15 @@ fun ActivityContent(
     orders: List<OrderData>,
     onShowPaymentDialog: (String) -> Unit
 ) {
-    val inProcessOrders = orders.filter { it.paymentStatus == 3 }
-    val historyOrders = orders.filter { it.paymentStatus != 3 }
+    val inProcessOrders = orders.filter { it.paymentStatus != PaymentStatusStage.COMPLETED }
+    val historyOrders = orders.filter { it.paymentStatus === PaymentStatusStage.COMPLETED }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        // In Process Orders Section
         if (inProcessOrders.isNotEmpty()) {
             Text(
                 text = "Dalam Proses",
@@ -167,13 +168,13 @@ fun ActivityContent(
             inProcessOrders.forEach { order ->
                 HistoryCard(
                     date = order.check_in.toDate(),
-                    isPaid = order.paymentStatus == 3,
+                    paymentStatus = order.paymentStatus,
                     imageUrl = painterResource(id = getImageResourceForOrder(order)),
                     title = getOrderTitle(order),
                     totalPrice = order.totalPrice.toInt(),
                     amountToBePaid = (order.totalPrice - order.paidAmount).toInt(),
                     onButtonClick = {
-                        onShowPaymentDialog(order.packageRef)
+                        onShowPaymentDialog(order.documentId)
                     }
                 )
             }
@@ -194,10 +195,10 @@ fun ActivityContent(
             historyOrders.forEachIndexed { index, order ->
                 HistoryCard(
                     date = order.check_in.toDate(),
-                    isPaid = order.paymentStatus == 3,
+                    paymentStatus = order.paymentStatus,
                     imageUrl = painterResource(id = getImageResourceForOrder(order)),
                     title = getOrderTitle(order),
-                    totalPrice = order.totalPrice.toInt()
+                    totalPrice = order.totalPrice.toInt(),
                 )
 
                 if (index < historyOrders.size - 1) {
