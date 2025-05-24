@@ -1,14 +1,15 @@
 package brawijaya.example.purisaehomestay.ui.viewmodels
 
 import android.content.Context
-import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.data.model.Paket
-import brawijaya.example.purisaehomestay.data.repository.CloudinaryRepository
+import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
+import brawijaya.example.purisaehomestay.data.repository.OrderRepository
 import brawijaya.example.purisaehomestay.data.repository.PackageRepository
-import brawijaya.example.purisaehomestay.utils.ImageCleanupManager
+import com.google.firebase.Timestamp
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,23 +18,29 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 import javax.inject.Inject
 
 data class OrderUiState(
     val isLoading: Boolean = false,
-    val errorMessage: String? = null,
-    val selectedPaket: Paket? = null,
     val packageList: List<Paket> = emptyList(),
-    val uploadingImage: Boolean = false,
-    val imageUrl: String? = null,
-    val pendingImageForDeletion: String? = null
+    val selectedPackage: Paket? = null,
+    val errorMessage: String? = null,
+    val successMessage: String? = null,
+    val hasSelectedDateRange: Boolean = false,
+    val isCreatingOrder: Boolean = false,
+    val showPaymentDialog: Boolean = false,
+    val orderList: List<OrderData> = emptyList(),
+    val availablePackages: List<Paket> = emptyList(),
+    val selectedPaket: Paket? = null,
+    val currentOrderId: String = ""
 )
 
 @HiltViewModel
 class OrderViewModel @Inject constructor(
-    private val repository: PackageRepository,
-    private val cloudinaryRepository: CloudinaryRepository,
-    private val imageCleanupManager: ImageCleanupManager,
+    private val packageRepository: PackageRepository,
+    private val orderRepository: OrderRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -41,22 +48,22 @@ class OrderViewModel @Inject constructor(
     val uiState: StateFlow<OrderUiState> = _uiState.asStateFlow()
 
     init {
-        observePackageList()
+        observeOrders()
     }
 
-    private fun observePackageList() {
+    private fun observeOrders() {
         viewModelScope.launch {
-            repository.packages
+            orderRepository.orders
                 .catch { e ->
                     _uiState.update {
                         it.copy(
-                            errorMessage = "Gagal memuat daftar paket: ${e.message}",
+                            errorMessage = "Gagal memuat daftar pesanan: ${e.message}",
                             isLoading = false
                         )
                     }
                 }
-                .collect { paket ->
-                    _uiState.update { it.copy(packageList = paket, isLoading = false) }
+                .collect { orders ->
+                    _uiState.update { it.copy(orderList = orders, isLoading = false) }
                 }
         }
     }
@@ -65,7 +72,7 @@ class OrderViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val paket = repository.getPackageById(id)
+                val paket = packageRepository.getPackageById(id)
                 _uiState.update { it.copy(selectedPaket = paket, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
@@ -78,61 +85,157 @@ class OrderViewModel @Inject constructor(
         }
     }
 
-    fun createPackage(paket: Paket) {
+    fun getAvailablePackages(checkInDate: String, checkOutDate: String) {
+        if (checkInDate.isEmpty() || checkOutDate.isEmpty()) {
+            _uiState.update {
+                it.copy(
+                    availablePackages = emptyList(),
+                    hasSelectedDateRange = false,
+                    errorMessage = "Silakan pilih tanggal check-in dan check-out terlebih dahulu"
+                )
+            }
+            return
+        }
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, hasSelectedDateRange = true) }
             try {
-                repository.createPackage(paket)
+                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                val checkIn = dateFormat.parse(checkInDate) ?: throw Exception("Invalid check-in date format")
+                val checkOut = dateFormat.parse(checkOutDate) ?: throw Exception("Invalid check-out date format")
+
+                val availablePackages = orderRepository.getAvailablePackages(checkIn, checkOut)
                 _uiState.update {
                     it.copy(
-                        errorMessage = null,
+                        availablePackages = availablePackages,
+                        packageList = availablePackages,
                         isLoading = false,
-                        pendingImageForDeletion = null
+                        errorMessage = null
                     )
                 }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
-                        errorMessage = "Gagal menambahkan paket: ${e.message}",
-                        isLoading = false
+                        errorMessage = "Gagal mendapatkan paket yang tersedia: ${e.message}",
+                        isLoading = false,
+                        availablePackages = emptyList(),
+                        packageList = emptyList()
                     )
                 }
             }
         }
     }
 
-    fun updatePackage(paket: Paket) {
+    fun createOrder(
+        checkInDate: String,
+        checkOutDate: String,
+        guestName: String,
+        guestPhone: String,
+        guestCount: String,
+        selectedPackageId: Int,
+        paymentType: String,
+        userRef: String?
+    ) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isCreatingOrder = true) }
+
+                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                val checkIn = dateFormat.parse(checkInDate) ?: throw Exception("Invalid check-in date")
+                val checkOut = dateFormat.parse(checkOutDate) ?: throw Exception("Invalid check-out date")
+                val guestQty = guestCount.toIntOrNull() ?: throw Exception("Invalid guest count")
+
+                val selectedPackage = _uiState.value.packageList.find { it.id == selectedPackageId }
+                    ?: throw Exception("Selected package not found")
+
+                val packageRef = orderRepository.createPackageRef(selectedPackage.id.toString())
+
+                val numberOfNights = ((checkOut.time - checkIn.time) / (1000 * 60 * 60 * 24)).toInt()
+                val pricePerNight = selectedPackage.price_weekday
+                val totalPrice = pricePerNight * numberOfNights
+
+                val paymentStage = if (paymentType == "Pembayaran Lunas") PaymentStatusStage.LUNAS else PaymentStatusStage.DP
+
+                val orderData = OrderData(
+                    check_in = Timestamp(checkIn),
+                    check_out = Timestamp(checkOut),
+                    guestName = guestName,
+                    guestPhone = guestPhone,
+                    guestQty = guestQty,
+                    jogloQty = selectedPackage.jogloQty,
+                    bungalowQty = selectedPackage.bungalowQty,
+                    numberOfNights = numberOfNights,
+                    occupiedDates = emptyList(),
+                    packageRef = packageRef,
+                    paidAmount = 0.0,
+                    paymentType = paymentType,
+                    paymentUrls = emptyList(),
+                    pricePerNight = pricePerNight,
+                    totalPrice = totalPrice,
+                    paymentStatus = paymentStage,
+                    userRef = userRef ?: ""
+                )
+
+                val orderId = orderRepository.createOrder(orderData)
+                Log.d("ViewModel", "CurrentOrderId: ${orderId}")
+
+                _uiState.update {
+                    it.copy(
+                        currentOrderId = orderId,
+                        isCreatingOrder = false,
+                        successMessage = "Order created successfully",
+                        showPaymentDialog = true
+                    )
+                }
+
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isCreatingOrder = false,
+                        errorMessage = e.message
+                    )
+                }
+            }
+        }
+    }
+
+    fun verifyPayment(orderId: String, isFirstPayment: Boolean = true) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val oldPaket = _uiState.value.selectedPaket
-                repository.updatePackage(paket)
+                val order = orderRepository.getOrderById(orderId)
+                val newPaidAmount: Double
+                val newPaymentStatus: PaymentStatusStage
 
-                if (oldPaket != null &&
-                    oldPaket.thumbnail_url != paket.thumbnail_url &&
-                    oldPaket.thumbnail_url?.isNotEmpty() == true
-                ) {
-
-                    viewModelScope.launch {
-                        try {
-                            cloudinaryRepository.deleteImage(oldPaket.thumbnail_url)
-                        } catch (e: Exception) {
-                            Log.e("OrderViewModel", "Failed to delete old image: ${e.message}")
+                when (order?.paymentType) {
+                    "Pembayaran DP 25%" -> {
+                        if (isFirstPayment) {
+                            newPaidAmount = order.totalPrice * 0.25
+                            newPaymentStatus = PaymentStatusStage.WAITING // Partial paid
+                        } else {
+                            newPaidAmount = order.totalPrice // Full payment
+                            newPaymentStatus = PaymentStatusStage.COMPLETED // Fully paid
                         }
                     }
+                    "Pembayaran Lunas" -> {
+                        newPaidAmount = order.totalPrice
+                        newPaymentStatus = PaymentStatusStage.COMPLETED
+                    }
+                    else -> throw Exception("Invalid payment type")
                 }
 
+                orderRepository.verifyPayment(orderId, newPaidAmount, newPaymentStatus)
                 _uiState.update {
                     it.copy(
-                        errorMessage = null,
                         isLoading = false,
-                        pendingImageForDeletion = null
+                        successMessage = "Pembayaran berhasil diverifikasi",
+                        errorMessage = null
                     )
                 }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
-                        errorMessage = "Gagal memperbarui paket: ${e.message}",
+                        errorMessage = "Gagal memverifikasi pembayaran: ${e.message}",
                         isLoading = false
                     )
                 }
@@ -140,28 +243,22 @@ class OrderViewModel @Inject constructor(
         }
     }
 
-    fun deletePackage(id: Int) {
+    fun getOrdersByUser(userRef: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val paketToDelete = _uiState.value.selectedPaket
-                repository.deletePackage(id)
-
-                if (paketToDelete != null && paketToDelete.thumbnail_url?.isNotEmpty() == true) {
-                    viewModelScope.launch {
-                        try {
-                            cloudinaryRepository.deleteImage(paketToDelete.thumbnail_url)
-                        } catch (e: Exception) {
-                            Log.e("OrderViewModel", "Failed to delete image after package deletion: ${e.message}")
-                        }
-                    }
+                val userOrders = orderRepository.getOrdersByUser(userRef)
+                _uiState.update {
+                    it.copy(
+                        orderList = userOrders,
+                        isLoading = false,
+                        errorMessage = null
+                    )
                 }
-
-                _uiState.update { it.copy(errorMessage = null, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
-                        errorMessage = "Gagal menghapus paket: ${e.message}",
+                        errorMessage = "Gagal mengambil pesanan pengguna: ${e.message}",
                         isLoading = false
                     )
                 }
@@ -169,81 +266,109 @@ class OrderViewModel @Inject constructor(
         }
     }
 
-    fun uploadImage(uri: Uri) {
+    fun deleteOrder(orderId: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(uploadingImage = true) }
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                val currentPendingImage = _uiState.value.pendingImageForDeletion
-                if (currentPendingImage != null) {
-                    imageCleanupManager.cleanupImage(currentPendingImage)
-                }
-
-                val cloudinaryUrl = cloudinaryRepository.uploadImage(context, uri)
-
-                imageCleanupManager.addPendingImage(cloudinaryUrl)
-
+                orderRepository.deleteOrder(orderId)
                 _uiState.update {
                     it.copy(
-                        imageUrl = cloudinaryUrl,
-                        uploadingImage = false,
-                        pendingImageForDeletion = cloudinaryUrl
+                        isLoading = false,
+                        successMessage = "Pesanan berhasil dihapus",
+                        errorMessage = null
                     )
                 }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
-                        errorMessage = "Gagal mengunggah gambar: ${e.message}",
-                        uploadingImage = false
+                        errorMessage = "Gagal menghapus pesanan: ${e.message}",
+                        isLoading = false
                     )
                 }
             }
         }
     }
 
-    fun cleanupPendingImage() {
-        viewModelScope.launch {
-            val pendingImage = _uiState.value.pendingImageForDeletion
-            if (pendingImage != null) {
-                imageCleanupManager.cleanupImage(pendingImage)
-                _uiState.update {
-                    it.copy(
-                        pendingImageForDeletion = null,
-                        imageUrl = null
-                    )
+    fun updatePaymentUrl(imageUrl: String) {
+        val orderId = _uiState.value.currentOrderId
+        if (orderId.isNotEmpty()) {
+            viewModelScope.launch {
+                try {
+                    orderRepository.updatePaymentUrl(orderId, imageUrl)
+                    _uiState.update {
+                        it.copy(
+                            successMessage = "Payment URL updated successfully",
+                            showPaymentDialog = false
+                        )
+                    }
+                } catch (e: Exception) {
+                    _uiState.update {
+                        it.copy(
+                            errorMessage = "Failed to update payment URL: ${e.message}"
+                        )
+                    }
                 }
             }
         }
+    }
+
+    fun updateDPImageUrl(imageUrl: String) {
+        val orderId = _uiState.value.currentOrderId
+        if (orderId.isNotEmpty()) {
+            viewModelScope.launch {
+                try {
+                    _uiState.update { it.copy(isLoading = true) }
+
+                    orderRepository.DPPayment(orderId, imageUrl)
+
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            successMessage = "Payment completed successfully",
+                            showPaymentDialog = false,
+                            currentOrderId = ""
+                        )
+                    }
+                } catch (e: Exception) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Failed to complete payment: ${e.message}"
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+
+    fun setShowPaymentDialog(show: Boolean) {
+        _uiState.update { it.copy(showPaymentDialog = show) }
+    }
+
+    fun setCurrentOrderId(orderId: String) {
+        Log.d("ViewModel", "CurrentOrderId: ${orderId}")
+        _uiState.update { it.copy(currentOrderId = orderId) }
+    }
+
+
+    fun dismissPaymentDialog() {
+        _uiState.update { it.copy(showPaymentDialog = false) }
     }
 
     fun resetErrorMessage() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    fun updateErrorMessage(message: String) {
-        _uiState.update { it.copy(errorMessage = message) }
+    fun resetSuccessMessage() {
+        _uiState.update { it.copy(successMessage = null) }
     }
 
     fun resetSelectedPaket() {
         _uiState.update { it.copy(selectedPaket = null) }
     }
 
-    fun resetImageUrl() {
-        _uiState.update { it.copy(imageUrl = null) }
-    }
-
-    fun markImageAsSaved() {
-        val pendingImage = _uiState.value.pendingImageForDeletion
-        if (pendingImage != null) {
-            imageCleanupManager.removePendingImage(pendingImage)
-        }
-        _uiState.update { it.copy(pendingImageForDeletion = null) }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        val pendingImage = _uiState.value.pendingImageForDeletion
-        if (pendingImage != null) {
-            Log.w("OrderViewModel", "ViewModel cleared with pending image: $pendingImage")
-        }
+    fun clearMessages() {
+        _uiState.update { it.copy(errorMessage = null, successMessage = null) }
     }
 }

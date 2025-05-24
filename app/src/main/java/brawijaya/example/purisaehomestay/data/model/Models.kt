@@ -158,3 +158,55 @@ data class Order(
     val amountToBePaid: Int? = null,
     val imageResId: Int
 )
+
+enum class PaymentStatusStage {
+    NONE,    // No payment submitted yet
+    DP,      // DP payment submitted, waiting for admin verification
+    SISA,    // Remaining payment submitted, waiting for admin verification
+    LUNAS,    // Fully paid, waiting for admin verification
+    WAITING,  // Waiting for another user payment
+    COMPLETED,   // Order completed
+    REJECTED  // Order Rejected
+}
+
+data class OrderData(
+    val documentId: String = "",
+    val check_in: Timestamp = Timestamp.now(),
+    val check_out: Timestamp = Timestamp.now(),
+    val guestName: String = "",
+    val guestPhone: String = "",
+    val guestQty: Int = 1,
+    val jogloQty: Int = 0,
+    val bungalowQty: Int = 0,
+    val numberOfNights: Int = 1,
+    val occupiedDates: List<String> = emptyList(),
+    val packageRef: String = "",
+    val paidAmount: Double = 0.0,
+    val paymentType: String = "",
+    val paymentUrls: List<String> = emptyList(), // For DP: [firstPaymentUrl, secondPaymentUrl], For Lunas: [paymentUrl]
+    val paymentStatus: PaymentStatusStage = PaymentStatusStage.NONE,
+    val pricePerNight: Double = 0.0,
+    val totalPrice: Double = 0.0,
+    val userRef: String = "",
+) {
+    constructor() : this(
+        documentId = "",
+        check_in = Timestamp.now(),
+        check_out = Timestamp.now(),
+        guestName = "",
+        guestPhone = "",
+        guestQty = 1,
+        jogloQty = 0,
+        bungalowQty = 0,
+        numberOfNights = 1,
+        occupiedDates = emptyList(),
+        packageRef = "",
+        paidAmount = 0.0,
+        paymentType = "",
+        paymentUrls = emptyList(),
+        paymentStatus = PaymentStatusStage.NONE,
+        pricePerNight = 0.0,
+        totalPrice = 0.0,
+        userRef = ""
+    )
+}

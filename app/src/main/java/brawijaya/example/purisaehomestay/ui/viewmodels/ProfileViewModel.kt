@@ -90,4 +90,16 @@ class ProfileViewModel @Inject constructor(
             state.copy(errorMessage = null)
         }
     }
+
+    fun getUserName(): String {
+        return _uiState.value.userData?.name ?: ""
+    }
+
+    fun getUserPhoneNumber(): String {
+        return _uiState.value.userData?.phoneNumber ?: ""
+    }
+
+    fun getCurrentUserRef(): String {
+        return userRepository.getCurrentUserRef() ?: ""
+    }
 }

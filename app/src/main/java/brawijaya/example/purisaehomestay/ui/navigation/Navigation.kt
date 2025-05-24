@@ -21,6 +21,7 @@ import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managenews.Man
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.EditPackageScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.ManagePackageScreen
 import brawijaya.example.purisaehomestay.ui.screens.promo.PromoScreen
+import brawijaya.example.purisaehomestay.ui.screens.upload.UploadScreen
 
 sealed class Screen(val route: String){
     object Home : Screen("home")
@@ -36,6 +37,8 @@ sealed class Screen(val route: String){
     object Activities : Screen("activities")
     object ManagePackage: Screen("manage_package")
     object ManageNews : Screen("manage_news")
+    object UploadPayment : Screen("upload_payment")
+
     object EditPackage: Screen("edit_package?paketId={paketId}") {
         fun createRoute(paketId: Int? = null): String {
             return if (paketId != null) {
@@ -128,6 +131,15 @@ fun AppNavigation(navController: NavHostController) {
             EditNewsScreen(
                 navController = navController,
                 newsId = validNewsId
+            )
+        }
+
+        composable(Screen.UploadPayment.route) {
+            UploadScreen(
+                navController = navController,
+                onImageUploaded = { imageUrl ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set("uploaded_image_url", imageUrl)
+                }
             )
         }
 //        composable(Screen.Notification.route) {

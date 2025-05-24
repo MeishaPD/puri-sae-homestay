@@ -62,16 +62,20 @@ import brawijaya.example.purisaehomestay.ui.components.GeneralDialog
 import brawijaya.example.purisaehomestay.ui.components.ImageUploader
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
-import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
+import brawijaya.example.purisaehomestay.ui.viewmodels.CloudinaryViewModel
+import brawijaya.example.purisaehomestay.ui.viewmodels.PackageViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditPackageScreen(
     navController: NavController,
-    viewModel: OrderViewModel = hiltViewModel(),
+    viewModel: PackageViewModel = hiltViewModel(),
+    cldViewModel: CloudinaryViewModel = hiltViewModel(),
     paketId: Int? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val cldUiState by cldViewModel.uiState.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
 
@@ -82,8 +86,8 @@ fun EditPackageScreen(
     val paket = uiState.selectedPaket
     val isLoading = uiState.isLoading
     val errorMessage = uiState.errorMessage
-    val isUploadingImage = uiState.uploadingImage
-    val cloudinaryImageUrl = uiState.imageUrl
+    val isUploadingImage = cldUiState.isUploading
+    val cloudinaryImageUrl = cldUiState.imageUrl
 
     var hasUnsavedChanges by remember { mutableStateOf(false) }
     val isEditMode = paketId != null && paketId != 0 && paketId != -1
@@ -285,7 +289,7 @@ fun EditPackageScreen(
                         imageUrl = cloudinaryImageUrl ?: imageUrl,
                         placeHolderResId = null,
                         onImageUrlChanged = { uri ->
-                            viewModel.uploadImage(uri)
+                            cldViewModel.uploadImage(uri)
                         },
                         isUploading = isUploadingImage
                     )

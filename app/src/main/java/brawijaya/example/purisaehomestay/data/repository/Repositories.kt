@@ -194,6 +194,11 @@ class UserRepository @Inject constructor(
     fun isUserAdmin(): Boolean {
         return _userData.value?.role == "Admin"
     }
+
+    fun getCurrentUserRef(): String? {
+        val userId = auth.currentUser?.uid
+        return if (userId != null) "/users/$userId" else null
+    }
 }
 
 class DataRepository(private val db: FirebaseFirestore = FirebaseFirestore.getInstance()) {
