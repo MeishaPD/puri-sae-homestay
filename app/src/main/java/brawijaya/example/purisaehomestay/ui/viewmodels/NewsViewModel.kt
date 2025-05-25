@@ -16,7 +16,10 @@ data class NewsUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val newsList: List<NewsData> = emptyList(),
-    val selectedNews: NewsData? = null
+    val selectedNews: NewsData? = null,
+    val isCreating: Boolean = false,
+    val isUpdating: Boolean = false,
+    val isDeleting: Boolean = false
 )
 
 @HiltViewModel
@@ -28,25 +31,30 @@ class NewsViewModel @Inject constructor(
     val uiState: StateFlow<NewsUiState> = _uiState.asStateFlow()
 
     init {
-        fetchSortedNews()
+        fetchAllNews()
         observeNewsList()
     }
 
     private fun observeNewsList() {
         viewModelScope.launch {
             newsRepository.news.collect { news ->
-                val sortedNews = newsRepository.getNewsSortedByLatestDate()
-                _uiState.update { it.copy(newsList = sortedNews) }
+                _uiState.update { it.copy(newsList = news) }
             }
         }
     }
 
-    fun fetchSortedNews() {
+    fun fetchAllNews() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val sortedNews = newsRepository.getNewsSortedByLatestDate()
-                _uiState.update { it.copy(newsList = sortedNews, isLoading = false) }
+                val news = newsRepository.fetchAllNews()
+                _uiState.update {
+                    it.copy(
+                        newsList = news,
+                        isLoading = false,
+                        errorMessage = null
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -58,12 +66,18 @@ class NewsViewModel @Inject constructor(
         }
     }
 
-    fun getNewsById(id: Int) {
+    fun getNewsById(id: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val news = newsRepository.getNewsById(id)
-                _uiState.update { it.copy(selectedNews = news, isLoading = false) }
+                _uiState.update {
+                    it.copy(
+                        selectedNews = news,
+                        isLoading = false,
+                        errorMessage = null
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -77,16 +91,20 @@ class NewsViewModel @Inject constructor(
 
     fun createNews(news: NewsData) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isCreating = true) }
             try {
-                newsRepository.createNews(news)
-                fetchSortedNews()
-                _uiState.update { it.copy(errorMessage = null, isLoading = false) }
+                val newsId = newsRepository.createNews(news)
+                _uiState.update {
+                    it.copy(
+                        isCreating = false,
+                        errorMessage = null
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         errorMessage = "Gagal menambahkan berita: ${e.message}",
-                        isLoading = false
+                        isCreating = false
                     )
                 }
             }
@@ -95,34 +113,42 @@ class NewsViewModel @Inject constructor(
 
     fun updateNews(news: NewsData) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isUpdating = true) }
             try {
                 newsRepository.updateNews(news)
-                fetchSortedNews()
-                _uiState.update { it.copy(errorMessage = null, isLoading = false) }
+                _uiState.update {
+                    it.copy(
+                        isUpdating = false,
+                        errorMessage = null
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         errorMessage = "Gagal memperbarui berita: ${e.message}",
-                        isLoading = false
+                        isUpdating = false
                     )
                 }
             }
         }
     }
 
-    fun deleteNews(id: Int) {
+    fun deleteNews(id: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isDeleting = true) }
             try {
                 newsRepository.deleteNews(id)
-                fetchSortedNews()
-                _uiState.update { it.copy(errorMessage = null, isLoading = false) }
+                _uiState.update {
+                    it.copy(
+                        isDeleting = false,
+                        errorMessage = null
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         errorMessage = "Gagal menghapus berita: ${e.message}",
-                        isLoading = false
+                        isDeleting = false
                     )
                 }
             }
@@ -139,5 +165,9 @@ class NewsViewModel @Inject constructor(
 
     fun resetSelectedNews() {
         _uiState.update { it.copy(selectedNews = null) }
+    }
+
+    fun refreshNews() {
+        fetchAllNews()
     }
 }

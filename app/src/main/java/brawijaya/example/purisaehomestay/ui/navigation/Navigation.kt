@@ -22,6 +22,7 @@ import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.ManagePackageScreen
 import brawijaya.example.purisaehomestay.ui.screens.promo.PromoScreen
 import brawijaya.example.purisaehomestay.ui.screens.upload.UploadScreen
+import kotlin.text.isNullOrEmpty
 
 sealed class Screen(val route: String){
     object Home : Screen("home")
@@ -49,11 +50,11 @@ sealed class Screen(val route: String){
         }
     }
     object EditNews: Screen("edit_news?newsId={newsId}") {
-        fun createRoute(newsId: Int? = null): String {
-            return if (newsId != null) {
+        fun createRoute(newsId: String?): String {
+            return if (!newsId.isNullOrEmpty()) {
                 "edit_news?newsId=$newsId"
             } else {
-                "edit_news?newsId=-1"
+                "edit_news"
             }
         }
     }
@@ -117,20 +118,21 @@ fun AppNavigation(navController: NavHostController) {
                 paketId = validPaketId
             )
         }
+
         composable(
             route = Screen.EditNews.route,
             arguments = listOf(
                 navArgument("newsId") {
-                    type = NavType.IntType
-                    defaultValue = -1
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
                 }
             )
         ) { backStackEntry ->
-            val newsId = backStackEntry.arguments?.getInt("newsId")
-            val validNewsId = if (newsId != null && newsId > 0) newsId else null
+            val newsId = backStackEntry.arguments?.getString("newsId")
             EditNewsScreen(
                 navController = navController,
-                newsId = validNewsId
+                newsId = newsId
             )
         }
 

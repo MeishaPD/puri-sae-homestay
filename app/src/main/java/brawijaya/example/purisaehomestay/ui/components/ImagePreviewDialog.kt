@@ -1,6 +1,5 @@
 package brawijaya.example.purisaehomestay.ui.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -34,14 +33,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
 
 @Composable
 fun ImagePreviewDialog(
-    imageResources: List<Int>,
+    imageUrls: List<String>,
     initialImageIndex: Int = 0,
     onDismiss: () -> Unit
 ) {
@@ -81,8 +80,8 @@ fun ImagePreviewDialog(
                     )
                 }
 
-                Image(
-                    painter = painterResource(id = imageResources[selectedImageIndex]),
+                AsyncImage(
+                    model = imageUrls[selectedImageIndex],
                     contentDescription = "Enlarged Image",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
@@ -122,7 +121,7 @@ fun ImagePreviewDialog(
                         }
                 )
 
-                if (imageResources.size > 1) {
+                if (imageUrls.size > 1) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -161,7 +160,7 @@ fun ImagePreviewDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            imageResources.forEachIndexed { index, _ ->
+                            imageUrls.forEachIndexed { index, _ ->
                                 Box(
                                     modifier = Modifier
                                         .size(8.dp)
@@ -180,7 +179,7 @@ fun ImagePreviewDialog(
                             }
                         }
 
-                        if (selectedImageIndex < imageResources.size - 1) {
+                        if (selectedImageIndex < imageUrls.size - 1) {
                             IconButton(
                                 onClick = {
                                     selectedImageIndex++

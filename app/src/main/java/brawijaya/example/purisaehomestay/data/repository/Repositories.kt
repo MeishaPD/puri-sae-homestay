@@ -314,25 +314,6 @@ class DataRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIn
         }
     }
 
-    // Create news
-    suspend fun createNews(newsData: NewsData): Result<String> {
-        return try {
-            val newsMap = hashMapOf(
-                "description" to newsData.description,
-                "imageUrl" to newsData.imageUrl,
-                "createdAt" to newsData.createdAt,
-                "updatedAt" to (newsData.updatedAt ?: Timestamp.now()),
-                "isRead" to newsData.isRead
-            )
-
-            val documentRef = newsRef.add(newsMap).await()
-            Result.Success(documentRef.id)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to create news", e)
-            Result.Error("Failed to create news: ${e.message}")
-        }
-    }
-
     // Create promo
     suspend fun createPromo(promoData: PromoData): Result<String> {
         return try {
