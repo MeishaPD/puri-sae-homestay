@@ -148,26 +148,26 @@ fun EditPackageScreen(
         }
     }
 
-    BackHandler(enabled = hasUnsavedChanges || uiState.pendingImageForDeletion != null) {
-        if (hasUnsavedChanges || uiState.pendingImageForDeletion != null) {
+    BackHandler(enabled = hasUnsavedChanges) {
+        if (hasUnsavedChanges) {
             showCancelDialog = true
         } else {
             navController.popBackStack()
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            if (uiState.pendingImageForDeletion != null && !hasUnsavedChanges) {
-                viewModel.cleanupPendingImage()
-            }
-        }
-    }
+//    DisposableEffect(Unit) {
+//        onDispose {
+//           if (uiState.pendingImageForDeletion != null && !hasUnsavedChanges) {
+//              viewModel.cleanupPendingImage()
+//            }
+//        }
+//    }
 
     fun handleBackNavigation() {
-        if (uiState.pendingImageForDeletion != null) {
-            viewModel.cleanupPendingImage()
-        }
+//        if (uiState.pendingImageForDeletion != null) {
+//            viewModel.cleanupPendingImage()
+//        }
         navController.popBackStack()
     }
 
@@ -225,7 +225,7 @@ fun EditPackageScreen(
             viewModel.createPackage(newPaket)
         }
 
-        viewModel.markImageAsSaved()
+//        viewModel.markImageAsSaved()
         navController.popBackStack()
     }
 
@@ -247,7 +247,7 @@ fun EditPackageScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        if (hasUnsavedChanges || uiState.pendingImageForDeletion != null) {
+                        if (hasUnsavedChanges) {
                             showCancelDialog = true
                         } else {
                             navController.popBackStack()

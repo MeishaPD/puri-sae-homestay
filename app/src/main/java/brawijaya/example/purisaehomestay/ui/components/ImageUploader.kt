@@ -5,24 +5,35 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,13 +60,17 @@ import coil.compose.rememberAsyncImagePainter
 fun ImageUploader(
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
+    imageUrls: List<String> = emptyList(),
     placeHolderResId: Int? = null,
-    onImageUrlChanged: (Uri) -> Unit,
-    isUploading: Boolean = false
+    onImageUrlChanged: (Uri) -> Unit = {},
+    onImageUrlsChanged: (List<Uri>) -> Unit = {},
+    onImageRemoved: (String) -> Unit = {},
+    isUploading: Boolean = false,
+    isMultiple: Boolean = false,
 ) {
+    val maxImages = 3
     val context = LocalContext.current
     var showImagePickerDialog by remember { mutableStateOf(false) }
-    var tmpUri by remember { mutableStateOf<Uri?>(null) }
 
     val permissionsGranted = remember {
         hasPermissions(
@@ -68,13 +83,73 @@ fun ImageUploader(
         )
     }
 
+    if (isMultiple) {
+        MultipleImageUploader(
+            modifier = modifier,
+            imageUrls = imageUrls,
+            onImageUrlsChanged = onImageUrlsChanged,
+            onImageRemoved = onImageRemoved,
+            isUploading = isUploading,
+            maxImages = maxImages,
+            permissionsGranted = permissionsGranted,
+            showImagePickerDialog = showImagePickerDialog,
+            onShowImagePickerDialog = { showImagePickerDialog = it }
+        )
+    } else {
+        SingleImageUploader(
+            modifier = modifier,
+            imageUrl = imageUrl,
+            placeHolderResId = placeHolderResId,
+            onImageUrlChanged = onImageUrlChanged,
+            isUploading = isUploading,
+            permissionsGranted = permissionsGranted,
+            showImagePickerDialog = showImagePickerDialog,
+            onShowImagePickerDialog = { showImagePickerDialog = it }
+        )
+    }
+
+    if (showImagePickerDialog) {
+        ImagePickerDialog(
+            isMultiple = isMultiple,
+            maxImages = maxImages,
+            currentImageCount = if (isMultiple) imageUrls.size else (if (imageUrl != null) 1 else 0),
+            onDismiss = {
+                showImagePickerDialog = false
+            },
+            onImageSelected = { uri ->
+                if (isMultiple) {
+                    onImageUrlsChanged(listOf(uri))
+                } else {
+                    onImageUrlChanged(uri)
+                }
+                showImagePickerDialog = false
+            },
+            onImagesSelected = { uris ->
+                onImageUrlsChanged(uris)
+                showImagePickerDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun SingleImageUploader(
+    modifier: Modifier,
+    imageUrl: String?,
+    placeHolderResId: Int?,
+    onImageUrlChanged: (Uri) -> Unit,
+    isUploading: Boolean,
+    permissionsGranted: Boolean,
+    showImagePickerDialog: Boolean,
+    onShowImagePickerDialog: (Boolean) -> Unit
+) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .border(1.dp, PrimaryGold, RoundedCornerShape(8.dp))
             .clickable {
                 if (permissionsGranted) {
-                    showImagePickerDialog = true
+                    onShowImagePickerDialog(true)
                 }
             },
         contentAlignment = Alignment.Center
@@ -115,34 +190,129 @@ fun ImageUploader(
             }
         }
     }
+}
 
-    if (showImagePickerDialog) {
-        ImagePickerDialog(
-            onDismiss = {
-                showImagePickerDialog = false
-            },
-            onImageSelected = { uri ->
-                onImageUrlChanged(uri)
-                showImagePickerDialog = false
+@Composable
+private fun MultipleImageUploader(
+    modifier: Modifier,
+    imageUrls: List<String>,
+    onImageUrlsChanged: (List<Uri>) -> Unit,
+    onImageRemoved: (String) -> Unit,
+    isUploading: Boolean,
+    maxImages: Int,
+    permissionsGranted: Boolean,
+    showImagePickerDialog: Boolean,
+    onShowImagePickerDialog: (Boolean) -> Unit
+) {
+    Column(modifier = modifier) {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            contentPadding = PaddingValues(horizontal = 0.dp)
+        ) {
+            items(imageUrls) { imageUrl ->
+                Box(
+                    modifier = Modifier
+                        .width(120.dp)
+                        .aspectRatio(1f)
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(imageUrl),
+                        contentDescription = "Uploaded Image",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    IconButton(
+                        onClick = { onImageRemoved(imageUrl) },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .size(24.dp)
+                            .background(
+                                Color.Black.copy(alpha = 0.6f),
+                                CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Remove Image",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
-        )
+
+            item {
+                if (imageUrls.size < maxImages) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(PrimaryGold)
+                            .clickable {
+                                if (permissionsGranted) {
+                                    onShowImagePickerDialog(true)
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isUploading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add Image",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
-
 @Composable
 fun ImagePickerDialog(
+    isMultiple: Boolean = false,
+    maxImages: Int = 3,
+    currentImageCount: Int = 0,
     onDismiss: () -> Unit,
-    onImageSelected: (Uri) -> Unit
+    onImageSelected: (Uri) -> Unit = {},
+    onImagesSelected: (List<Uri>) -> Unit = {}
 ) {
     val context = LocalContext.current
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
 
+    val remainingSlots = maxImages - currentImageCount
+
     val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            onImageSelected(uri)
+        contract = if (isMultiple) {
+            ActivityResultContracts.GetMultipleContents()
+        } else {
+            ActivityResultContracts.GetContent()
+        }
+    ) { result ->
+        if (isMultiple) {
+            val uris = result as? List<Uri>
+            if (!uris.isNullOrEmpty()) {
+                val limitedUris = uris.take(remainingSlots)
+                onImagesSelected(limitedUris)
+            }
+        } else {
+            val uri = result as? Uri
+            if (uri != null) {
+                onImageSelected(uri)
+            }
         }
         onDismiss()
     }
@@ -151,7 +321,11 @@ fun ImagePickerDialog(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
         if (success && cameraUri != null) {
-            onImageSelected(cameraUri!!)
+            if (isMultiple) {
+                onImagesSelected(listOf(cameraUri!!))
+            } else {
+                onImageSelected(cameraUri!!)
+            }
         }
         onDismiss()
     }
@@ -196,7 +370,9 @@ fun ImagePickerDialog(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)
                 ) {
-                    Text("Galeri")
+                    Text(
+                        text = "Galeri"
+                    )
                 }
 
                 Spacer(Modifier.height(8.dp))

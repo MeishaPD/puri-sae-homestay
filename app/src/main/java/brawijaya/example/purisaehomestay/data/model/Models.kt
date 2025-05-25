@@ -101,16 +101,6 @@ data class PaymentsData(
     val updatedAt: Timestamp = Timestamp.now()
 )
 
-data class NewsData(
-    val id: Int,
-    val description: String = "",
-    val date: String = "",
-    val imageUrl: List<Int> = emptyList<Int>(),
-    val createdAt: Timestamp = Timestamp.now(),
-    val updatedAt: Timestamp = Timestamp.now(),
-    val isRead: Boolean = false
-)
-
 data class NotificationData(
     val id: String = "",
     val type: NotificationType = NotificationType.NEWS,
@@ -208,5 +198,21 @@ data class OrderData(
         pricePerNight = 0.0,
         totalPrice = 0.0,
         userRef = ""
+    )
+}
+
+data class NewsData(
+    val id: String = "",
+    val imageUrls: List<String> = emptyList(),
+    val desc: String = "",
+    val createdAt: Timestamp = Timestamp.now(),
+    val updatedAt: Timestamp = Timestamp.now()
+) {
+    constructor() : this(
+        id = "",
+        imageUrls = emptyList(),
+        desc = "",
+        createdAt = Timestamp.now(),
+        updatedAt = Timestamp.now()
     )
 }

@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -59,8 +61,10 @@ import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.NewsData
 import brawijaya.example.purisaehomestay.ui.components.GeneralDialog
+import brawijaya.example.purisaehomestay.ui.components.ImageUploader
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import brawijaya.example.purisaehomestay.ui.viewmodels.CloudinaryViewModel
 import brawijaya.example.purisaehomestay.ui.viewmodels.NewsViewModel
 import com.google.firebase.Timestamp
 
@@ -69,10 +73,12 @@ import com.google.firebase.Timestamp
 fun EditNewsScreen(
     navController: NavController,
     viewModel: NewsViewModel = hiltViewModel(),
-    newsId: Int? = null
+    cldViewModel: CloudinaryViewModel = hiltViewModel(),
+    newsId: String? = null
 ) {
-
     val uiState by viewModel.uiState.collectAsState()
+    val cldUiState by cldViewModel.uiState.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -81,9 +87,11 @@ fun EditNewsScreen(
     val news = uiState.selectedNews
     val isLoading = uiState.isLoading
     val errorMessage = uiState.errorMessage
+    val isUploadingImage = cldUiState.isUploading
+    val cloudinaryImageUrl = cldUiState.imageUrl
 
     LaunchedEffect(newsId) {
-        if (newsId != null && newsId > 0) {
+        if (!newsId.isNullOrEmpty()) {
             viewModel.getNewsById(newsId)
         } else {
             viewModel.resetSelectedNews()
@@ -103,12 +111,12 @@ fun EditNewsScreen(
 
     LaunchedEffect(news) {
         news?.let {
-            description = it.description
-            date = it.date
-            imageResId = it.imageUrl
+            description = it.desc
+            cldViewModel.setImageUrls(it.imageUrls)
+        } ?: run {
+            cldViewModel.clearImageUrls()
         }
     }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -117,7 +125,7 @@ fun EditNewsScreen(
                 ),
                 title = {
                     Text(
-                        text = if (newsId != null && newsId > 0) "Edit Berita" else "Tambah Berita Baru",
+                        text = if (!newsId.isNullOrEmpty()) "Edit Berita" else "Tambah Berita Baru",
                         color = PrimaryGold,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Normal,
@@ -178,47 +186,38 @@ fun EditNewsScreen(
                         shape = RoundedCornerShape(8.dp)
                     )
 
-                    Text(
-                        text = "Tambahkan Foto",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        ),
-                        modifier = Modifier.padding(top = 14.dp)
-                    )
-
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
+                    Column(
+                        modifier = Modifier.padding(top = 12.dp)
                     ) {
-                        items(imageResId) { imageRes ->
-                            PhotoItem(
-                                imageResId = imageRes,
-                                onDeleteClick = {
-                                    imageResId = imageResId.filter { it != imageRes }
+                        Text(
+                            text = "Tambahkan Foto",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(12.dp)
+                        )
+
+                        ImageUploader(
+                            modifier = Modifier.fillMaxWidth(),
+                            imageUrls = cldUiState.imageUrls,
+                            onImageUrlsChanged = { uris ->
+                                uris.forEach { uri ->
+                                    cldViewModel.addImageToList(uri)
                                 }
-                            )
-                        }
-                        if (imageResId.size < 4) {
-                            item {
-                                IconButton(
-                                    onClick = {},
-                                    modifier = Modifier
-                                        .clip(CircleShape)
-                                        .fillMaxSize()
-                                        .background(color = PrimaryGold)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Add,
-                                        contentDescription = "Add Image",
-                                        tint = Color.White
-                                    )
-                                }
-                            }
-                        }
+                            },
+                            onImageRemoved = { imageUrl ->
+                                cldViewModel.removeImageFromList(imageUrl)
+                            },
+                            isUploading = isUploadingImage,
+                            isMultiple = true,
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(12.dp)
+                        )
+
                     }
 
                     Row(
@@ -250,45 +249,24 @@ fun EditNewsScreen(
 
                         Button(
                             onClick = {
-//                                if (date.isBlank()) {
-//                                    viewModel.updateErrorMessage("Tanggal berita tidak boleh kosong")
-//                                    return@Button
-//                                }
                                 if (description.isBlank()) {
                                     viewModel.updateErrorMessage("Deskripsi berita tidak boleh kosong")
                                     return@Button
                                 }
-//                                if (imageResId.isEmpty()) {
-//                                    viewModel.updateErrorMessage("Minimal satu gambar harus ditambahkan")
-//                                    return@Button
-//                                }
-
-                                val defaultImageId = if (newsId == 1) {
-                                    listOf(
-                                        R.drawable.bungalow_single,
-                                        R.drawable.bungalow_group,
-                                        R.drawable.landscape_view
-                                    )
-                                } else if (newsId == 2) {
-                                    listOf(
-                                        R.drawable.bungalow_group,
-                                        R.drawable.bungalow_single
-                                    )
-                                } else {
-                                    listOf(
-                                        R.drawable.landscape_view
-                                    )
+                                if (cldUiState.imageUrls.isEmpty()) {
+                                    viewModel.updateErrorMessage("Minimal satu gambar harus ditambahkan")
+                                    return@Button
                                 }
 
                                 val updatedNews = NewsData(
-                                    id = newsId ?: ((uiState.newsList.maxOfOrNull { it.id } ?: 0) + 1),
-                                    description = description,
-                                    date = if (date.isEmpty()) "12/12/2012" else date,
-                                    updatedAt = Timestamp.now(),
-                                    imageUrl = if (imageResId.isEmpty()) defaultImageId else imageResId
+                                    id = newsId ?: "",
+                                    desc = description,
+                                    imageUrls = cldUiState.imageUrls,
+                                    createdAt = news?.createdAt ?: Timestamp.now(),
+                                    updatedAt = Timestamp.now()
                                 )
 
-                                if (newsId != null && newsId > 0) {
+                                if (!newsId.isNullOrEmpty()) {
                                     viewModel.updateNews(updatedNews)
                                 } else {
                                     viewModel.createNews(updatedNews)
@@ -318,7 +296,7 @@ fun EditNewsScreen(
                         modifier = Modifier.padding(vertical = 4.dp)
                     )
 
-                    if (newsId != null && newsId > 0){
+                    if (!newsId.isNullOrEmpty()) {
                         OutlinedButton(
                             onClick = {
                                 newsToDelete = news
@@ -354,7 +332,7 @@ fun EditNewsScreen(
                 showDeleteDialog = false
             },
             onConfirm = {
-                newsToDelete?.id?.let { viewModel.deleteNews(newsToDelete!!.id) }
+                newsToDelete?.id?.let { viewModel.deleteNews(it) }
                 showDeleteDialog = false
                 newsToDelete = null
                 navController.popBackStack()

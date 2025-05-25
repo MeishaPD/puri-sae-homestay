@@ -17,6 +17,7 @@ import javax.inject.Inject
 data class CloudinaryUiState(
     val isUploading: Boolean = false,
     val imageUrl: String? = null,
+    val imageUrls: List<String> = emptyList(),
     val errorMessage: String? = null,
     val uploadProgress: Float = 0f
 )
@@ -64,6 +65,67 @@ class CloudinaryViewModel @Inject constructor(
         }
     }
 
+    fun addImageToList(uri: Uri) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isUploading = true,
+                    errorMessage = null
+                )
+            }
+
+            try {
+                val cloudinaryUrl = cloudinaryRepository.uploadImage(context, uri)
+
+                _uiState.update {
+                    it.copy(
+                        imageUrls = it.imageUrls + cloudinaryUrl,
+                        isUploading = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "Gagal mengunggah gambar: ${e.message}",
+                        isUploading = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun removeImageFromList(imageUrl: String) {
+        viewModelScope.launch {
+            try {
+                cloudinaryRepository.deleteImage(imageUrl)
+
+                _uiState.update {
+                    it.copy(
+                        imageUrls = it.imageUrls.filter { url -> url != imageUrl }
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "Gagal menghapus gambar: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun setImageUrls(imageUrls: List<String>) {
+        _uiState.update {
+            it.copy(imageUrls = imageUrls)
+        }
+    }
+
+    fun clearImageUrls() {
+        _uiState.update {
+            it.copy(imageUrls = emptyList())
+        }
+    }
+
     fun resetState() {
         _uiState.update {
             CloudinaryUiState()
@@ -79,6 +141,12 @@ class CloudinaryViewModel @Inject constructor(
     fun resetImageUrl() {
         _uiState.update {
             it.copy(imageUrl = null)
+        }
+    }
+
+    fun resetImageUrls() {
+        _uiState.update {
+            it.copy(imageUrls = emptyList())
         }
     }
 }

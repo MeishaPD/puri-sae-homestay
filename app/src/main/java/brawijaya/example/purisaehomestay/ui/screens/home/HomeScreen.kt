@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Whatsapp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +58,7 @@ import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.components.BottomNavigation
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.components.NewsComponent
+import brawijaya.example.purisaehomestay.ui.screens.profile.ProfileContent
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.theme.Typography
 import brawijaya.example.purisaehomestay.ui.viewmodels.HomeUiState
@@ -240,10 +242,13 @@ fun HomeScreenContent(
                 fontSize = 20.sp
             )
 
-            if (uiState.news.isEmpty()) {
-                Text(
-                    text = "Belum ada berita terbaru"
-                )
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = PrimaryGold)
+                }
             } else {
                 Column {
                     uiState.news.map { newsItem ->
