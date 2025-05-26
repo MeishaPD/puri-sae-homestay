@@ -129,7 +129,9 @@ fun ActivityScreen(
 
                 currentOrder?.let { order ->
                     PaymentDialog(
-                        order = order,
+                        totalPrice = order.totalPrice,
+                        paidAmount = order.paidAmount,
+                        remainingAmout = order.totalPrice * 0.75,
                         onDismiss = { viewModel.setShowPaymentDialog(false) },
                         onUploadClicked = {
                             navController.navigate(Screen.UploadPayment.route)

@@ -8,6 +8,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -31,24 +32,25 @@ class OrderRepository @Inject constructor(
      * Mendapatkan semua pesanan sebagai Flow
      */
     val orders: Flow<List<OrderData>> = callbackFlow {
-        val listener = orderCollection.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                close(error)
-                return@addSnapshotListener
-            }
-
-            val orderList = snapshot?.documents?.mapNotNull { document ->
-                try {
-                    document.toObject<OrderData>()?.copy(documentId = document.id)
-                } catch (e: Exception) {
-                    Log.e("OrderRepository", "Error parsing order: ${e.message}")
-                    null
+        val listener = orderCollection
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
                 }
-            } ?: emptyList()
 
-            Log.d("OrderRepository", "Order list: $orderList")
-            trySend(orderList)
-        }
+                val orderList = snapshot?.documents?.mapNotNull { document ->
+                    try {
+                        document.toObject<OrderData>()?.copy(documentId = document.id)
+                    } catch (e: Exception) {
+                        Log.e("OrderRepository", "Error parsing order: ${e.message}")
+                        null
+                    }
+                } ?: emptyList()
+
+                trySend(orderList)
+            }
 
         awaitClose { listener.remove() }
     }
@@ -186,18 +188,21 @@ class OrderRepository @Inject constructor(
     suspend fun verifyPayment(orderId: String, paidAmount: Double, paymentStatus: PaymentStatusStage) {
         try {
             val orderDoc = orderCollection.document(orderId)
-
             val currentOrder = getOrderById(orderId)
+
             val paymentStage = when {
-                currentOrder?.paymentType == "Pembayaran Lunas" && paymentStatus === PaymentStatusStage.LUNAS  -> PaymentStatusStage.COMPLETED
-                currentOrder?.paymentType == "Pembayaran DP 25%" && paymentStatus === PaymentStatusStage.DP -> PaymentStatusStage.WAITING
-                currentOrder?.paymentType == "Pembayaran DP 25%" && paymentStatus === PaymentStatusStage.LUNAS -> PaymentStatusStage.COMPLETED
-                else -> PaymentStatusStage.NONE
+                currentOrder?.paymentType == "Pembayaran Lunas" && paymentStatus == PaymentStatusStage.LUNAS -> PaymentStatusStage.COMPLETED
+                currentOrder?.paymentType == "Pembayaran DP 25%" && paymentStatus == PaymentStatusStage.DP -> PaymentStatusStage.WAITING
+                currentOrder?.paymentType == "Pembayaran DP 25%" && paymentStatus == PaymentStatusStage.SISA -> PaymentStatusStage.COMPLETED
+
+                else -> {
+                    PaymentStatusStage.NONE
+                }
             }
 
             orderDoc.update(
                 mapOf(
-                    "paymentStatus" to paymentStage,
+                    "paymentStatus" to paymentStage.name,
                     "paidAmount" to paidAmount,
                 )
             ).await()
@@ -247,6 +252,7 @@ class OrderRepository @Inject constructor(
         return try {
             val snapshot = orderCollection
                 .whereEqualTo("userRef", userRef)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .await()
 
@@ -260,6 +266,19 @@ class OrderRepository @Inject constructor(
             }
         } catch (e: Exception) {
             throw Exception("Failed to get user orders: ${e.message}")
+        }
+    }
+
+    suspend fun rejectPayment(orderId: String) {
+        try {
+            val orderRef = orderCollection.document(orderId)
+            orderRef.update(
+                mapOf(
+                    "paymentStatus" to PaymentStatusStage.REJECTED.name
+                )
+            ).await()
+        } catch (e: Exception) {
+            throw Exception("Failed to reject payment: ${e.message}")
         }
     }
 

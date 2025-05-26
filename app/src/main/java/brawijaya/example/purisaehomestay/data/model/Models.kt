@@ -178,6 +178,7 @@ data class OrderData(
     val pricePerNight: Double = 0.0,
     val totalPrice: Double = 0.0,
     val userRef: String = "",
+    val createdAt: Timestamp = Timestamp.now(),
 ) {
     constructor() : this(
         documentId = "",
@@ -197,10 +198,10 @@ data class OrderData(
         paymentStatus = PaymentStatusStage.NONE,
         pricePerNight = 0.0,
         totalPrice = 0.0,
-        userRef = ""
+        userRef = "",
+        createdAt = Timestamp.now()
     )
 }
-
 data class NewsData(
     val id: String = "",
     val imageUrls: List<String> = emptyList(),
