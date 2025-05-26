@@ -13,15 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -58,7 +55,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.NewsData
 import brawijaya.example.purisaehomestay.ui.components.GeneralDialog
 import brawijaya.example.purisaehomestay.ui.components.ImageUploader
@@ -362,7 +358,7 @@ fun PhotoItem(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(4.dp)
-                .size(24.dp)
+                .size(12.dp)
                 .clip(RoundedCornerShape(50))
                 .background(PrimaryGold)
         ) {
@@ -374,8 +370,9 @@ fun PhotoItem(
                     contentDescription = "Delete Photo",
                     tint = Color.White,
                     modifier = Modifier
-                        .size(16.dp)
+                        .scale(0.75f)
                         .align(Alignment.Center)
+                        .background(PrimaryGold)
                 )
             }
         }

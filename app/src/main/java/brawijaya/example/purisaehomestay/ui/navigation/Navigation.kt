@@ -20,6 +20,7 @@ import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managenews.Edi
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managenews.ManageNewsScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.EditPackageScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.ManagePackageScreen
+import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepayment.ManagePaymentScreen
 import brawijaya.example.purisaehomestay.ui.screens.promo.PromoScreen
 import brawijaya.example.purisaehomestay.ui.screens.upload.UploadScreen
 import kotlin.text.isNullOrEmpty
@@ -39,6 +40,7 @@ sealed class Screen(val route: String){
     object ManagePackage: Screen("manage_package")
     object ManageNews : Screen("manage_news")
     object UploadPayment : Screen("upload_payment")
+    object ManagePayment: Screen("manage_payment")
 
     object EditPackage: Screen("edit_package?paketId={paketId}") {
         fun createRoute(paketId: Int? = null): String {
@@ -101,6 +103,9 @@ fun AppNavigation(navController: NavHostController) {
         }
         composable(Screen.ManageNews.route) {
             ManageNewsScreen(navController = navController)
+        }
+        composable(Screen.ManagePayment.route) {
+            ManagePaymentScreen(navController = navController)
         }
         composable(
             route = Screen.EditPackage.route,

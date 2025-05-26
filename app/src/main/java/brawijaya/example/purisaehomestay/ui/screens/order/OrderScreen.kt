@@ -54,11 +54,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import brawijaya.example.purisaehomestay.R
-import brawijaya.example.purisaehomestay.data.model.Order
 import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.ui.components.BottomNavigation
@@ -168,6 +165,19 @@ fun OrderScreen(
                         ),
                         modifier = Modifier.padding(start = 2.dp)
                     )
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            navController.navigate(Screen.Activities.route)
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.overview),
+                            contentDescription = "Aktivitas Saya",
+                            tint = PrimaryGold
+                        )
+                    }
                 }
             )
         },
