@@ -56,4 +56,17 @@ object DateUtils {
 
         return checkOut.after(checkIn)
     }
+
+    fun calculateNights(checkInDate: String, checkOutDate: String): Int {
+        return try {
+            val checkIn = parseDate(checkInDate)
+            val checkOut = parseDate(checkOutDate)
+            if (checkIn != null && checkOut != null) {
+                val diffInMillis = checkOut.time - checkIn.time
+                (diffInMillis / (1000 * 60 * 60 * 24)).toInt()
+            } else 1
+        } catch (e: Exception) {
+            1
+        }
+    }
 }

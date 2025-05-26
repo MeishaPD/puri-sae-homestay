@@ -285,27 +285,21 @@ fun OrderScreen(
                 )
 
                 if (uiState.showPaymentDialog) {
-                    val inProcessOrderData = OrderData(
-                        check_in = Timestamp(DateUtils.parseDate("18/04/2025") ?: DateUtils.getCurrentDate()),
-                        check_out = Timestamp(DateUtils.parseDate("19/04/2025") ?: DateUtils.getCurrentDate()),
-                        guestName = "Tamu Default",
-                        guestPhone = "081234567890",
-                        guestQty = 2,
-                        jogloQty = 0,
-                        bungalowQty = 1,
-                        numberOfNights = 1,
-                        occupiedDates = listOf("2025-04-18"),
-                        packageRef = "bungalow_paket_01",
-                        paidAmount = 0.0, // Default to 0
-                        paymentType = selectedPaymentOption,
-                        paymentUrls = emptyList(),
-                        pricePerNight = 1500000.0,
-                        totalPrice = 1500000.0,
-                        userRef = "user_default"
-                    )
+                    val selectedPaket = uiState.packageList.find { it.id == selectedPackageId }
+                    val nights = if (checkInDate.isNotEmpty() && checkOutDate.isNotEmpty()) {
+                        DateUtils.calculateNights(checkInDate, checkOutDate)
+                    } else 1
+
+                    val totalPrice = selectedPaket?.let { paket ->
+                        paket.price_weekday * nights
+                    } ?: 0.0
+
+                    val remainingAmount = totalPrice - 0
 
                     PaymentDialog(
-                        order = inProcessOrderData,
+                        totalPrice = totalPrice,
+                        paidAmount = 0.0,
+                        remainingAmout = remainingAmount,
                         onDismiss = { viewModel.dismissPaymentDialog() },
                         onUploadClicked = {
                             navController.navigate(Screen.UploadPayment.route)
