@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -68,7 +70,7 @@ fun ImageUploader(
     isUploading: Boolean = false,
     isMultiple: Boolean = false,
 ) {
-    val maxImages = 3
+    val maxImages = 4
     val context = LocalContext.current
     var showImagePickerDialog by remember { mutableStateOf(false) }
 
@@ -231,16 +233,16 @@ private fun MultipleImageUploader(
                             .align(Alignment.TopEnd)
                             .padding(4.dp)
                             .size(24.dp)
+                            .scale(0.75f)
                             .background(
-                                Color.Black.copy(alpha = 0.6f),
+                                PrimaryGold.copy(alpha = 0.8f),
                                 CircleShape
                             )
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = Icons.Rounded.Delete,
                             contentDescription = "Remove Image",
-                            tint = Color.White,
-                            modifier = Modifier.size(16.dp)
+                            tint = Color.White
                         )
                     }
                 }

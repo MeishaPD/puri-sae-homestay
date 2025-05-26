@@ -36,6 +36,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 
 @Composable
@@ -72,6 +73,7 @@ fun ImagePreviewDialog(
                         .padding(16.dp)
                         .size(40.dp)
                         .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                        .zIndex(1f)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
@@ -129,27 +131,29 @@ fun ImagePreviewDialog(
                             .padding(bottom = 24.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        if (selectedImageIndex > 0) {
-                            IconButton(
-                                onClick = {
+                        IconButton(
+                            onClick = {
+                                if (selectedImageIndex > 0) {
                                     selectedImageIndex--
                                     scale = 1f
                                     offsetX = 0f
                                     offsetY = 0f
-                                },
-                                modifier = Modifier
-                                    .padding(start = 16.dp)
-                                    .size(40.dp)
-                                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                                    contentDescription = "Previous Image",
-                                    tint = Color.White
+                                }
+                            },
+                            enabled = selectedImageIndex > 0,
+                            modifier = Modifier
+                                .padding(start = 16.dp)
+                                .size(40.dp)
+                                .background(
+                                    Color.Black.copy(alpha = if (selectedImageIndex > 0) 0.5f else 0f),
+                                    CircleShape
                                 )
-                            }
-                        } else {
-                            Box(modifier = Modifier.size(40.dp))
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                                contentDescription = "Previous Image",
+                                tint = Color.White.copy(alpha = if (selectedImageIndex > 0) 1f else 0f)
+                            )
                         }
 
                         Row(
@@ -179,27 +183,29 @@ fun ImagePreviewDialog(
                             }
                         }
 
-                        if (selectedImageIndex < imageUrls.size - 1) {
-                            IconButton(
-                                onClick = {
+                        IconButton(
+                            onClick = {
+                                if (selectedImageIndex < imageUrls.size - 1) {
                                     selectedImageIndex++
                                     scale = 1f
                                     offsetX = 0f
                                     offsetY = 0f
-                                },
-                                modifier = Modifier
-                                    .padding(end = 16.dp)
-                                    .size(40.dp)
-                                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                                    contentDescription = "Next Image",
-                                    tint = Color.White
+                                }
+                            },
+                            enabled = selectedImageIndex < imageUrls.size - 1,
+                            modifier = Modifier
+                                .padding(end = 16.dp)
+                                .size(40.dp)
+                                .background(
+                                    Color.Black.copy(alpha = if (selectedImageIndex < imageUrls.size - 1) 0.5f else 0f),
+                                    CircleShape
                                 )
-                            }
-                        } else {
-                            Box(modifier = Modifier.size(40.dp))
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                contentDescription = "Next Image",
+                                tint = Color.White.copy(alpha = if (selectedImageIndex < imageUrls.size - 1) 1f else 0f)
+                            )
                         }
                     }
                 }

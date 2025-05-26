@@ -1,13 +1,14 @@
 package brawijaya.example.purisaehomestay.ui.screens.order.history
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material3.CircularProgressIndicator
@@ -105,7 +106,6 @@ fun ActivityScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .padding(innerPadding)
         ) {
             if (uiState.isLoading) {
@@ -149,23 +149,24 @@ fun ActivityContent(
     val inProcessOrders = orders.filter { it.paymentStatus != PaymentStatusStage.COMPLETED }
     val historyOrders = orders.filter { it.paymentStatus === PaymentStatusStage.COMPLETED }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // In Process Orders Section
         if (inProcessOrders.isNotEmpty()) {
-            Text(
-                text = "Dalam Proses",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                ),
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            item {
+                Text(
+                    text = "Dalam Proses",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    ),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
 
-            inProcessOrders.forEach { order ->
+            items(inProcessOrders) { order ->
                 HistoryCard(
                     date = order.check_in.toDate(),
                     paymentStatus = order.paymentStatus,
@@ -179,20 +180,24 @@ fun ActivityContent(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
 
         if (historyOrders.isNotEmpty()) {
-            Text(
-                text = "Riwayat",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                ),
-                modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
-            )
+            item {
+                Text(
+                    text = "Riwayat",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    ),
+                    modifier = Modifier.padding(bottom = 16.dp, top = 8.dp)
+                )
+            }
 
-            historyOrders.forEachIndexed { index, order ->
+            itemsIndexed(historyOrders) { index, order ->
                 HistoryCard(
                     date = order.check_in.toDate(),
                     paymentStatus = order.paymentStatus,
@@ -211,16 +216,23 @@ fun ActivityContent(
         }
 
         if (orders.isEmpty()) {
-            Text(
-                text = "Belum ada pesanan",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(top = 32.dp)
-            )
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 32.dp)
+                ) {
+                    Text(
+                        text = "Belum ada pesanan",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+            }
         }
     }
 }
+
 
 @Composable
 private fun getImageResourceForOrder(order: OrderData): Int {

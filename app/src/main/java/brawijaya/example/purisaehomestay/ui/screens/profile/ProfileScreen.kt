@@ -226,7 +226,9 @@ fun ProfileContent(
                     MenuItemWithIcon(
                         icon = Icons.Rounded.CreditCard,
                         title = "Kelola Pembayaran",
-                        onClick = {}
+                        onClick = {
+                            navController.navigate(Screen.ManagePayment.route)
+                        }
                     )
                     MenuItemWithIcon(
                         icon = Icons.Rounded.Newspaper,
