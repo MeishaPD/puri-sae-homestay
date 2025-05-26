@@ -207,7 +207,7 @@ fun HistoryCard(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "Bayar Sekarang",
+                    text = if( paymentStatus === PaymentStatusStage.WAITING ) "Bayar Sekarang" else "Menunggu Verifikasi",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp

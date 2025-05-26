@@ -4,8 +4,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -17,25 +19,53 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
+import brawijaya.example.purisaehomestay.ui.components.GeneralDialog
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepayment.components.ConfirmPaymentCard
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManagePaymentScreen(
-    navController: NavController
+    navController: NavController,
+    orderViewModel: OrderViewModel = hiltViewModel()
 ) {
-
     val snackbarHostState = remember { SnackbarHostState() }
+    val uiState by orderViewModel.uiState.collectAsState()
+
+    var showCompleteDialog by remember { mutableStateOf(false) }
+    var showRejectDialog by remember { mutableStateOf(false) }
+    var selectedOrderId by remember { mutableStateOf("") }
+    var selectedOrderPaymentType by remember { mutableStateOf("") }
+
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            orderViewModel.clearMessages()
+        }
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            orderViewModel.clearMessages()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -75,68 +105,92 @@ fun ManagePaymentScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            ManagePaymentContent()
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                ManagePaymentContent(
+                    orderList = uiState.orderList,
+                    onComplete = { orderId, paymentType ->
+                        selectedOrderId = orderId
+                        selectedOrderPaymentType = paymentType
+                        showCompleteDialog = true
+                    },
+                    onReject = { orderId ->
+                        selectedOrderId = orderId
+                        showRejectDialog = true
+                    }
+                )
+            }
+
+            if (showCompleteDialog) {
+                GeneralDialog(
+                    message = "Apakah Anda yakin untuk menerima pembayaran ini?",
+                    onDismiss = {
+                        showCompleteDialog = false
+                        selectedOrderId = ""
+                        selectedOrderPaymentType = ""
+                    },
+                    onConfirm = {
+                        orderViewModel.verifyPayment(selectedOrderId)
+                        showCompleteDialog = false
+                        selectedOrderId = ""
+                        selectedOrderPaymentType = ""
+                    }
+                )
+            }
+
+            if (showRejectDialog) {
+                GeneralDialog(
+                    message = "Apakah Anda yakin untuk menolak pembayaran ini?",
+                    onDismiss = {
+                        showRejectDialog = false
+                        selectedOrderId = ""
+                    },
+                    onConfirm = {
+                        orderViewModel.rejectPayment(selectedOrderId)
+                        showRejectDialog = false
+                        selectedOrderId = ""
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
-fun ManagePaymentContent() {
+fun ManagePaymentContent(
+    orderList: List<brawijaya.example.purisaehomestay.data.model.OrderData>,
+    onComplete: (String, String) -> Unit,
+    onReject: (String) -> Unit,
+) {
+    val pendingOrders = orderList.filter { order ->
+        order.paymentStatus in listOf(
+            PaymentStatusStage.DP,
+            PaymentStatusStage.SISA,
+            PaymentStatusStage.LUNAS,
+            PaymentStatusStage.WAITING,
+            PaymentStatusStage.COMPLETED,
+            PaymentStatusStage.REJECTED
+        )
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        item {
+        items(pendingOrders) { order ->
             ConfirmPaymentCard(
-                orderData = OrderData(
-                    guestName = "Bambang",
-                    guestPhone = "0878787878",
-                    guestQty = 5,
-                    paidAmount = 500000.0,
-                    paymentUrls = listOf("https://res.cloudinary.com/dkwbc3had/image/upload/v1748222780/PuriSaeHomestay/upload_4389952778423432799_mz36cf.jpg", "https://res.cloudinary.com/dkwbc3had/image/upload/v1748222780/PuriSaeHomestay/upload_4389952778423432799_mz36cf.jpg"),
-                    paymentStatus = PaymentStatusStage.DP
-                ),
-                paketTitle = "Paket 2 Paket Rombongan"
-            )
-        }
-        item {
-            ConfirmPaymentCard(
-                orderData = OrderData(
-                    guestName = "Agus",
-                    guestPhone = "0878787878",
-                    guestQty = 15,
-                    paidAmount = 500000.0,
-                    paymentUrls = listOf("https://res.cloudinary.com/dkwbc3had/image/upload/v1748222780/PuriSaeHomestay/upload_4389952778423432799_mz36cf.jpg", "https://res.cloudinary.com/dkwbc3had/image/upload/v1748222780/PuriSaeHomestay/upload_4389952778423432799_mz36cf.jpg"),
-                    paymentStatus = PaymentStatusStage.COMPLETED
-                ),
-                paketTitle = "Paket 2 Paket Rombongan"
-            )
-        }
-        item {
-            ConfirmPaymentCard(
-                orderData = OrderData(
-                    guestName = "Lukman",
-                    guestPhone = "0878787878",
-                    guestQty = 10,
-                    paidAmount = 500000.0,
-                    paymentUrls = listOf("https://res.cloudinary.com/dkwbc3had/image/upload/v1748095611/tmp835219501901363598_gl8vup.jpg", "https://res.cloudinary.com/dkwbc3had/image/upload/v1748222780/PuriSaeHomestay/upload_4389952778423432799_mz36cf.jpg"),
-                    paymentStatus = PaymentStatusStage.REJECTED
-                ),
-                paketTitle = "Paket 2 Paket Rombongan"
-            )
-        }
-        item {
-            ConfirmPaymentCard(
-                orderData = OrderData(
-                    guestName = "Susilo Bambang Yudhoyono Agus Wibowo",
-                    guestPhone = "0869420599",
-                    guestQty = 3,
-                    paidAmount = 1500000.0,
-                    paymentUrls = listOf("https://res.cloudinary.com/dkwbc3had/image/upload/v1748222780/PuriSaeHomestay/upload_4389952778423432799_mz36cf.jpg", "https://res.cloudinary.com/dkwbc3had/image/upload/v1748095611/tmp835219501901363598_gl8vup.jpg"),
-                    paymentStatus = PaymentStatusStage.COMPLETED
-                ),
-                paketTitle = "Paket 69 Paket Gangbang"
+                orderData = order,
+                paketTitle = "Paket ${order.packageRef}",
+                onComplete = {
+                    onComplete(order.documentId, order.paymentType)
+                },
+                onReject = {
+                    onReject(order.documentId)
+                }
             )
         }
     }

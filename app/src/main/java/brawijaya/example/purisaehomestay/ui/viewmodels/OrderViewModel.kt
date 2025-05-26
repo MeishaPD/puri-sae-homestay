@@ -173,7 +173,8 @@ class OrderViewModel @Inject constructor(
                     pricePerNight = pricePerNight,
                     totalPrice = totalPrice,
                     paymentStatus = paymentStage,
-                    userRef = userRef ?: ""
+                    userRef = userRef ?: "",
+                    createdAt = Timestamp.now()
                 )
 
                 val orderId = orderRepository.createOrder(orderData)
@@ -199,32 +200,39 @@ class OrderViewModel @Inject constructor(
         }
     }
 
-    fun verifyPayment(orderId: String, isFirstPayment: Boolean = true) {
+    fun verifyPayment(orderId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val order = orderRepository.getOrderById(orderId)
-                val newPaidAmount: Double
-                val newPaymentStatus: PaymentStatusStage
+                if (order == null) {
+                    throw Exception("Order not found")
+                }
 
-                when (order?.paymentType) {
+                val newPaidAmount: Double
+
+                when (order.paymentType) {
                     "Pembayaran DP 25%" -> {
-                        if (isFirstPayment) {
+                        if (order.paymentStatus == PaymentStatusStage.DP) {
                             newPaidAmount = order.totalPrice * 0.25
-                            newPaymentStatus = PaymentStatusStage.WAITING // Partial paid
+                        } else if (order.paymentStatus == PaymentStatusStage.SISA) {
+                            newPaidAmount = order.totalPrice
                         } else {
-                            newPaidAmount = order.totalPrice // Full payment
-                            newPaymentStatus = PaymentStatusStage.COMPLETED // Fully paid
+                            throw Exception("Invalid payment status for DP payment type")
                         }
                     }
                     "Pembayaran Lunas" -> {
-                        newPaidAmount = order.totalPrice
-                        newPaymentStatus = PaymentStatusStage.COMPLETED
+                        if (order.paymentStatus == PaymentStatusStage.LUNAS) {
+                            newPaidAmount = order.totalPrice
+                        } else {
+                            throw Exception("Invalid payment status for Lunas payment type")
+                        }
                     }
-                    else -> throw Exception("Invalid payment type")
+                    else -> throw Exception("Invalid payment type: ${order.paymentType}")
                 }
 
-                orderRepository.verifyPayment(orderId, newPaidAmount, newPaymentStatus)
+                orderRepository.verifyPayment(orderId, newPaidAmount, order.paymentStatus)
+
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -236,6 +244,29 @@ class OrderViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         errorMessage = "Gagal memverifikasi pembayaran: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun rejectPayment(orderId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                orderRepository.rejectPayment(orderId)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        successMessage = "Pembayaran berhasil ditolak",
+                        errorMessage = null
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "Gagal menolak pembayaran: ${e.message}",
                         isLoading = false
                     )
                 }
@@ -259,29 +290,6 @@ class OrderViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         errorMessage = "Gagal mengambil pesanan pengguna: ${e.message}",
-                        isLoading = false
-                    )
-                }
-            }
-        }
-    }
-
-    fun deleteOrder(orderId: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            try {
-                orderRepository.deleteOrder(orderId)
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        successMessage = "Pesanan berhasil dihapus",
-                        errorMessage = null
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        errorMessage = "Gagal menghapus pesanan: ${e.message}",
                         isLoading = false
                     )
                 }
@@ -354,18 +362,6 @@ class OrderViewModel @Inject constructor(
 
     fun dismissPaymentDialog() {
         _uiState.update { it.copy(showPaymentDialog = false) }
-    }
-
-    fun resetErrorMessage() {
-        _uiState.update { it.copy(errorMessage = null) }
-    }
-
-    fun resetSuccessMessage() {
-        _uiState.update { it.copy(successMessage = null) }
-    }
-
-    fun resetSelectedPaket() {
-        _uiState.update { it.copy(selectedPaket = null) }
     }
 
     fun clearMessages() {

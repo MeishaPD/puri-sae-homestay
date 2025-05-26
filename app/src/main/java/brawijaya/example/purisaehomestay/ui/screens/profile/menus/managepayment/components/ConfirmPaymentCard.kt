@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -49,13 +50,20 @@ import java.util.Locale
 fun ConfirmPaymentCard(
     orderData: OrderData,
     paketTitle: String,
+    onComplete: () -> Unit,
+    onReject: () -> Unit,
 ) {
-
     var showImagePreview by remember { mutableStateOf(false) }
     var initialImageIndex by remember { mutableIntStateOf(0) }
-
     val numberFormat = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     numberFormat.maximumFractionDigits = 0
+
+    val displayAmount = when (orderData.paymentStatus) {
+        PaymentStatusStage.DP -> orderData.totalPrice * 0.25
+        PaymentStatusStage.SISA -> orderData.totalPrice * 0.75
+        PaymentStatusStage.LUNAS -> orderData.totalPrice
+        else -> orderData.paidAmount
+    }
 
     Column(
         modifier = Modifier
@@ -71,7 +79,6 @@ fun ConfirmPaymentCard(
             text = paketTitle,
             style = MaterialTheme.typography.titleSmall
         )
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -84,16 +91,24 @@ fun ConfirmPaymentCard(
                 style = MaterialTheme.typography.titleSmall
             )
             Text(
-                text = numberFormat.format(orderData.paidAmount).replace("Rp", "Rp "),
+                text = numberFormat.format(displayAmount).replace("Rp", "Rp "),
                 style = MaterialTheme.typography.titleSmall
             )
         }
 
         Text(
-            text = "Bukti Transfer:",
-            style = MaterialTheme.typography.titleSmall
+            text = "Jenis Pembayaran: ${orderData.paymentType}",
+            style = MaterialTheme.typography.bodySmall.copy(
+                color = Color.Gray
+            ),
+            modifier = Modifier.padding(top = 4.dp)
         )
 
+        Text(
+            text = "Bukti Transfer:",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(top = 8.dp)
+        )
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -115,9 +130,7 @@ fun ConfirmPaymentCard(
                     error = painterResource(id = R.drawable.ic_launcher_foreground)
                 )
             }
-
         }
-
         if (orderData.paymentStatus === PaymentStatusStage.DP || orderData.paymentStatus === PaymentStatusStage.SISA || orderData.paymentStatus === PaymentStatusStage.LUNAS) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -125,7 +138,7 @@ fun ConfirmPaymentCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 OutlinedButton(
-                    onClick = {},
+                    onClick = { onReject() },
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
                         contentColor = PrimaryGold,
@@ -142,11 +155,9 @@ fun ConfirmPaymentCard(
                         ),
                     )
                 }
-
                 Spacer(modifier = Modifier.size(12.dp))
-
                 Button(
-                    onClick = {},
+                    onClick = { onComplete() },
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PrimaryGold,
@@ -184,6 +195,27 @@ fun ConfirmPaymentCard(
                     )
                 )
             }
+        } else if (orderData.paymentStatus === PaymentStatusStage.WAITING) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Schedule,
+                    contentDescription = "Waiting for Payment",
+                    tint = Color(0xFFFF9800),
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Menunggu pelunasan",
+                    modifier = Modifier.padding(start = 4.dp),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            }
         } else if (orderData.paymentStatus === PaymentStatusStage.REJECTED) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -206,14 +238,12 @@ fun ConfirmPaymentCard(
                 )
             }
         }
-
         HorizontalDivider(
             thickness = 1.dp,
             color = Color.Black,
             modifier = Modifier.padding(top = 16.dp)
         )
     }
-
     if (showImagePreview) {
         ImagePreviewDialog(
             imageUrls = orderData.paymentUrls,
