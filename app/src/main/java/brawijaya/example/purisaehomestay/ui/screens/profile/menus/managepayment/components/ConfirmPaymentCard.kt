@@ -96,13 +96,28 @@ fun ConfirmPaymentCard(
             )
         }
 
-        Text(
-            text = "Jenis Pembayaran: ${orderData.paymentType}",
-            style = MaterialTheme.typography.bodySmall.copy(
-                color = Color.Gray
-            ),
-            modifier = Modifier.padding(top = 4.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Jenis Pembayaran:",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = Color.Gray
+                ),
+                modifier = Modifier.padding(top = 4.dp)
+            )
+
+            Text(
+                text = "${orderData.paymentType}",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = Color.Gray
+                ),
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
 
         Text(
             text = "Bukti Transfer:",

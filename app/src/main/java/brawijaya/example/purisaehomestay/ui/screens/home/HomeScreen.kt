@@ -249,13 +249,22 @@ fun HomeScreenContent(
                 ) {
                     CircularProgressIndicator(color = PrimaryGold)
                 }
-            } else {
+            } else if (uiState.news.isNotEmpty()) {
                 Column {
                     uiState.news.map { newsItem ->
                         NewsComponent(news = newsItem)
                         Spacer(Modifier.height(24.dp))
                     }
                 }
+            } else {
+                Text(
+                    text = "Belum ada berita",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+                )
             }
 
             Text(

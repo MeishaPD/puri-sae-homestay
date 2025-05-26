@@ -22,7 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
+import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileUiState
 import java.text.NumberFormat
 import java.util.Date
 import brawijaya.example.purisaehomestay.utils.DateUtils
@@ -30,6 +32,11 @@ import java.util.Locale
 
 @Composable
 fun HistoryCard(
+    guestName: String? = null,
+    guestPhone: String? = null,
+    guestQty: Int? = null,
+    profileUiState: ProfileUiState? = null,
+    currentRoute: String? = null,
     date: Date,
     paymentStatus: PaymentStatusStage,
     imageUrl: Painter,
@@ -43,7 +50,8 @@ fun HistoryCard(
     numberFormat.maximumFractionDigits = 0
 
     val isPaid = paymentStatus === PaymentStatusStage.COMPLETED
-    val isOnVerification = paymentStatus === PaymentStatusStage.DP || paymentStatus === PaymentStatusStage.LUNAS || paymentStatus === PaymentStatusStage.SISA
+    val isOnVerification =
+        paymentStatus === PaymentStatusStage.DP || paymentStatus === PaymentStatusStage.LUNAS || paymentStatus === PaymentStatusStage.SISA
 
     Column(
         modifier = Modifier
@@ -78,13 +86,30 @@ fun HistoryCard(
                     .height(72.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                if (profileUiState?.isAdmin == true) {
+                    Text(
+                        text = "$guestName | $guestPhone | $guestQty Orang",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     )
-                )
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 12.sp
+                        )
+                    )
+                } else {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    )
+                }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -161,7 +186,8 @@ fun HistoryCard(
                                 )
                             } else {
                                 Text(
-                                    text = numberFormat.format(totalPrice * 0.25).replace("Rp", "Rp "),
+                                    text = numberFormat.format(totalPrice * 0.25)
+                                        .replace("Rp", "Rp "),
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         color = Color.Gray,
                                         fontWeight = FontWeight.Bold,
@@ -194,26 +220,28 @@ fun HistoryCard(
             }
         }
 
-        if (isPaid == false && onButtonClick != null ) {
-            Button(
-                onClick = onButtonClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryGold
-                ),
-                enabled = paymentStatus === PaymentStatusStage.WAITING,
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = if( paymentStatus === PaymentStatusStage.WAITING ) "Bayar Sekarang" else "Menunggu Verifikasi",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+        if (currentRoute != Screen.MonthlyReport.route) {
+            if (isPaid == false && onButtonClick != null) {
+                Button(
+                    onClick = onButtonClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryGold
                     ),
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+                    enabled = paymentStatus === PaymentStatusStage.WAITING,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = if (paymentStatus === PaymentStatusStage.WAITING) "Bayar Sekarang" else "Menunggu Verifikasi",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        ),
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
             }
         }
     }

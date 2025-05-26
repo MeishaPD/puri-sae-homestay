@@ -1,6 +1,5 @@
 package brawijaya.example.purisaehomestay.ui.viewmodels
 
-import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,7 +10,6 @@ import brawijaya.example.purisaehomestay.data.repository.OrderRepository
 import brawijaya.example.purisaehomestay.data.repository.PackageRepository
 import com.google.firebase.Timestamp
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,7 +39,6 @@ data class OrderUiState(
 class OrderViewModel @Inject constructor(
     private val packageRepository: PackageRepository,
     private val orderRepository: OrderRepository,
-    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrderUiState())
@@ -178,7 +175,7 @@ class OrderViewModel @Inject constructor(
                 )
 
                 val orderId = orderRepository.createOrder(orderData)
-                Log.d("ViewModel", "CurrentOrderId: ${orderId}")
+                Log.d("ViewModel", "CurrentOrderId: $orderId")
 
                 _uiState.update {
                     it.copy(
@@ -213,10 +210,10 @@ class OrderViewModel @Inject constructor(
 
                 when (order.paymentType) {
                     "Pembayaran DP 25%" -> {
-                        if (order.paymentStatus == PaymentStatusStage.DP) {
-                            newPaidAmount = order.totalPrice * 0.25
+                        newPaidAmount = if (order.paymentStatus == PaymentStatusStage.DP) {
+                            order.totalPrice * 0.25
                         } else if (order.paymentStatus == PaymentStatusStage.SISA) {
-                            newPaidAmount = order.totalPrice
+                            order.totalPrice
                         } else {
                             throw Exception("Invalid payment status for DP payment type")
                         }
@@ -355,7 +352,7 @@ class OrderViewModel @Inject constructor(
     }
 
     fun setCurrentOrderId(orderId: String) {
-        Log.d("ViewModel", "CurrentOrderId: ${orderId}")
+        Log.d("ViewModel", "CurrentOrderId: $orderId")
         _uiState.update { it.copy(currentOrderId = orderId) }
     }
 

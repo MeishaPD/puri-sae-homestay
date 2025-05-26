@@ -146,7 +146,11 @@ class OrderRepository @Inject constructor(
      */
     suspend fun getAllOrders(): List<OrderData> {
         return try {
-            val snapshot = orderCollection.get().await()
+            val snapshot = orderCollection
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
             snapshot.documents.mapNotNull { document ->
                 try {
                     document.toObject<OrderData>()

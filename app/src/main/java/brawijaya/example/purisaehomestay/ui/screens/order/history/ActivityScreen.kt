@@ -43,6 +43,8 @@ import brawijaya.example.purisaehomestay.ui.screens.order.components.PaymentDial
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
+import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileUiState
+import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,8 +52,10 @@ import com.google.firebase.auth.FirebaseAuth
 fun ActivityScreen(
     navController: NavController,
     viewModel: OrderViewModel = hiltViewModel(),
+    profileViewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val profileUiState by profileViewModel.uiState.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
 
     LaunchedEffect(currentUser) {
@@ -115,6 +119,7 @@ fun ActivityScreen(
             } else {
                 ActivityContent(
                     orders = uiState.orderList,
+                    profileUiState = profileUiState,
                     onShowPaymentDialog = { orderId ->
                         viewModel.setCurrentOrderId(orderId)
                         viewModel.setShowPaymentDialog(true)
@@ -146,6 +151,7 @@ fun ActivityScreen(
 @Composable
 fun ActivityContent(
     orders: List<OrderData>,
+    profileUiState: ProfileUiState,
     onShowPaymentDialog: (String) -> Unit
 ) {
     val inProcessOrders = orders.filter { it.paymentStatus != PaymentStatusStage.COMPLETED }
@@ -170,6 +176,10 @@ fun ActivityContent(
 
             items(inProcessOrders) { order ->
                 HistoryCard(
+                    guestName = if (profileUiState.isAdmin) order.guestName else null,
+                    guestPhone = if (profileUiState.isAdmin) order.guestPhone else null,
+                    guestQty = if (profileUiState.isAdmin) order.guestQty else null,
+                    profileUiState = if (profileUiState.isAdmin) profileUiState else null,
                     date = order.check_in.toDate(),
                     paymentStatus = order.paymentStatus,
                     imageUrl = painterResource(id = getImageResourceForOrder(order)),
@@ -201,6 +211,10 @@ fun ActivityContent(
 
             itemsIndexed(historyOrders) { index, order ->
                 HistoryCard(
+                    guestName = if (profileUiState.isAdmin) order.guestName else null,
+                    guestPhone = if (profileUiState.isAdmin) order.guestPhone else null,
+                    guestQty = if (profileUiState.isAdmin) order.guestQty else null,
+                    profileUiState = if (profileUiState.isAdmin) profileUiState else null,
                     date = order.check_in.toDate(),
                     paymentStatus = order.paymentStatus,
                     imageUrl = painterResource(id = getImageResourceForOrder(order)),
@@ -237,7 +251,7 @@ fun ActivityContent(
 
 
 @Composable
-private fun getImageResourceForOrder(order: OrderData): Int {
+fun getImageResourceForOrder(order: OrderData): Int {
     return when {
         order.bungalowQty > 0 && order.jogloQty > 0 -> R.drawable.bungalow_group
         order.bungalowQty > 1 -> R.drawable.bungalow_group
@@ -247,7 +261,7 @@ private fun getImageResourceForOrder(order: OrderData): Int {
     }
 }
 
-private fun getOrderTitle(order: OrderData): String {
+fun getOrderTitle(order: OrderData): String {
     return when {
         order.bungalowQty > 0 && order.jogloQty > 0 -> "Paket Kombinasi (${order.bungalowQty} Bungalow + ${order.jogloQty} Joglo)"
         order.bungalowQty > 1 -> "Paket ${order.bungalowQty} Bungalow"

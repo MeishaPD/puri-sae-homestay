@@ -21,11 +21,12 @@ import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managenews.Man
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.EditPackageScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.ManagePackageScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepayment.ManagePaymentScreen
+import brawijaya.example.purisaehomestay.ui.screens.profile.menus.monthlyreport.MonthlyReportScreen
 import brawijaya.example.purisaehomestay.ui.screens.promo.PromoScreen
 import brawijaya.example.purisaehomestay.ui.screens.upload.UploadScreen
 import kotlin.text.isNullOrEmpty
 
-sealed class Screen(val route: String){
+sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Order : Screen("order")
     object Promo : Screen("promo")
@@ -37,12 +38,12 @@ sealed class Screen(val route: String){
     object Info : Screen("info")
     object Notification : Screen("notification")
     object Activities : Screen("activities")
-    object ManagePackage: Screen("manage_package")
+    object ManagePackage : Screen("manage_package")
     object ManageNews : Screen("manage_news")
     object UploadPayment : Screen("upload_payment")
-    object ManagePayment: Screen("manage_payment")
-
-    object EditPackage: Screen("edit_package?paketId={paketId}") {
+    object ManagePayment : Screen("manage_payment")
+    object MonthlyReport : Screen("monthly_report")
+    object EditPackage : Screen("edit_package?paketId={paketId}") {
         fun createRoute(paketId: Int? = null): String {
             return if (paketId != null) {
                 "edit_package?paketId=$paketId"
@@ -51,7 +52,8 @@ sealed class Screen(val route: String){
             }
         }
     }
-    object EditNews: Screen("edit_news?newsId={newsId}") {
+
+    object EditNews : Screen("edit_news?newsId={newsId}") {
         fun createRoute(newsId: String?): String {
             return if (!newsId.isNullOrEmpty()) {
                 "edit_news?newsId=$newsId"
@@ -107,6 +109,9 @@ fun AppNavigation(navController: NavHostController) {
         composable(Screen.ManagePayment.route) {
             ManagePaymentScreen(navController = navController)
         }
+        composable(Screen.MonthlyReport.route) {
+            MonthlyReportScreen(navController = navController)
+        }
         composable(
             route = Screen.EditPackage.route,
             arguments = listOf(
@@ -145,7 +150,10 @@ fun AppNavigation(navController: NavHostController) {
             UploadScreen(
                 navController = navController,
                 onImageUploaded = { imageUrl ->
-                    navController.previousBackStackEntry?.savedStateHandle?.set("uploaded_image_url", imageUrl)
+                    navController.previousBackStackEntry?.savedStateHandle?.set(
+                        "uploaded_image_url",
+                        imageUrl
+                    )
                 }
             )
         }

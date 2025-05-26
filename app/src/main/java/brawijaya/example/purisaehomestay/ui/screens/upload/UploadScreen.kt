@@ -124,7 +124,6 @@ fun UploadScreen(
                 isUploading = cloudinaryState.isUploading
             )
 
-            // Show success message briefly before navigating back
             if (cloudinaryState.imageUrl != null && !cloudinaryState.isUploading) {
                 Spacer(modifier = Modifier.height(16.dp))
 
