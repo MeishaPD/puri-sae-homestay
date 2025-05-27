@@ -1,6 +1,5 @@
 package brawijaya.example.purisaehomestay.ui.screens.order.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,8 +16,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
@@ -28,6 +29,8 @@ import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileUiState
 import java.text.NumberFormat
 import java.util.Date
 import brawijaya.example.purisaehomestay.utils.DateUtils
+import brawijaya.example.purisaehomestay.R
+import coil.compose.AsyncImage
 import java.util.Locale
 
 @Composable
@@ -39,10 +42,11 @@ fun HistoryCard(
     currentRoute: String? = null,
     date: Date,
     paymentStatus: PaymentStatusStage,
-    imageUrl: Painter,
+    imageUrl: Any,
     title: String,
     totalPrice: Int,
-    amountToBePaid: Int? = null,
+    amountToBePaid: Int? = 0,
+    paidAmount: Int? = 0,
     onButtonClick: (() -> Unit)? = null
 ) {
     val formattedDate = DateUtils.formatDate(date)
@@ -70,12 +74,15 @@ fun HistoryCard(
             modifier = Modifier
                 .fillMaxWidth(),
         ) {
-            Image(
-                painter = imageUrl,
+            AsyncImage(
+                model = imageUrl,
                 contentDescription = null,
                 modifier = Modifier
                     .size(72.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(id = R.drawable.bungalow_single),
+                error = painterResource(id = R.drawable.bungalow_single)
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -92,7 +99,9 @@ fun HistoryCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
-                        )
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = title,
@@ -159,61 +168,83 @@ fun HistoryCard(
                     )
                 }
 
-                if (isPaid == false && amountToBePaid != null) {
+                if ((isPaid == false && amountToBePaid != null) || (isPaid == false && currentRoute == Screen.MonthlyReport.route)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (isOnVerification) {
+                        if (currentRoute == Screen.MonthlyReport.route) {
                             Text(
-                                text = "Jumlah yang sedang diverifikasi",
+                                text = "Jumlah terverifikasi",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     color = Color.Gray,
                                     fontWeight = FontWeight.Normal,
                                     fontSize = 12.sp
-                                ),
+                                )
                             )
 
-                            if (paymentStatus === PaymentStatusStage.SISA) {
+                            Text(
+                                text = numberFormat.format(paidAmount)
+                                    .replace("Rp", "Rp "),
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    color = Color.Gray,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            )
+                        } else {
+                            if (isOnVerification) {
                                 Text(
-                                    text = numberFormat.format(amountToBePaid).replace("Rp", "Rp "),
-                                    style = MaterialTheme.typography.titleMedium.copy(
+                                    text = "Jumlah yang sedang diverifikasi",
+                                    style = MaterialTheme.typography.labelSmall.copy(
                                         color = Color.Gray,
-                                        fontWeight = FontWeight.Bold,
+                                        fontWeight = FontWeight.Normal,
                                         fontSize = 12.sp
                                     )
                                 )
+
+                                if (paymentStatus === PaymentStatusStage.SISA || paymentStatus === PaymentStatusStage.LUNAS) {
+                                    Text(
+                                        text = numberFormat.format(amountToBePaid)
+                                            .replace("Rp", "Rp "),
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            color = Color.Gray,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                    )
+                                } else {
+                                    Text(
+                                        text = numberFormat.format(totalPrice * 0.25)
+                                            .replace("Rp", "Rp "),
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            color = Color.Gray,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                    )
+                                }
                             } else {
                                 Text(
-                                    text = numberFormat.format(totalPrice * 0.25)
-                                        .replace("Rp", "Rp "),
+                                    text = "Jumlah yang harus dilunasi",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = Color.Red,
+                                        fontWeight = FontWeight.Normal,
+                                        fontSize = 12.sp
+                                    ),
+                                )
+
+                                Text(
+                                    text = numberFormat.format(amountToBePaid).replace("Rp", "Rp "),
                                     style = MaterialTheme.typography.titleMedium.copy(
-                                        color = Color.Gray,
+                                        color = Color.Red,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp
                                     )
                                 )
                             }
-
-                        } else {
-                            Text(
-                                text = "Jumlah yang harus dilunasi",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = Color.Red,
-                                    fontWeight = FontWeight.Normal,
-                                    fontSize = 12.sp
-                                ),
-                            )
-
-                            Text(
-                                text = numberFormat.format(amountToBePaid).replace("Rp", "Rp "),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    color = Color.Red,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
-                            )
                         }
                     }
                 }

@@ -1,7 +1,7 @@
 package brawijaya.example.purisaehomestay.data.repository
 
 import android.util.Log
-import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.toObject
 import kotlinx.coroutines.channels.awaitClose
@@ -24,7 +24,7 @@ class PackageRepository @Inject constructor(
     /**
      * Mendapatkan semua paket sebagai Flow
      */
-    val packages: Flow<List<Paket>> = callbackFlow {
+    val packages: Flow<List<PackageData>> = callbackFlow {
         val listener = packageCollection.addSnapshotListener { snapshot, error ->
             if (error != null) {
                 close(error)
@@ -33,13 +33,13 @@ class PackageRepository @Inject constructor(
 
             val packageList = snapshot?.documents?.mapNotNull { document ->
                 try {
-                    document.toObject<Paket>()?.copy(id = document.id.hashCode())
+                    document.toObject<PackageData>()?.copy(id = document.id.hashCode())
                 } catch (e: Exception) {
                     null
                 }
             } ?: emptyList()
 
-            Log.d("REPOSITORY", "Package list: ${packageList}")
+            Log.d("REPOSITORY", "Package list: $packageList")
 
             trySend(packageList)
         }
@@ -50,9 +50,9 @@ class PackageRepository @Inject constructor(
     /**
      * Membuat paket baru
      */
-    suspend fun createPackage(paket: Paket) {
+    suspend fun createPackage(packageData: PackageData) {
         try {
-            packageCollection.add(paket).await()
+            packageCollection.add(packageData).await()
         } catch (e: Exception) {
             throw Exception("Failed to create package: ${e.message}")
         }
@@ -61,10 +61,10 @@ class PackageRepository @Inject constructor(
     /**
      * Mengambil paket berdasarkan ID
      */
-    suspend fun getPackageById(id: Int): Paket? {
+    suspend fun getPackageById(id: Int): PackageData? {
         return try {
             val snapshot = packageCollection.get().await()
-            snapshot.documents.find { it.id.hashCode() == id }?.toObject<Paket>()?.copy(id = id)
+            snapshot.documents.find { it.id.hashCode() == id }?.toObject<PackageData>()?.copy(id = id)
         } catch (e: Exception) {
             throw Exception("Failed to get package: ${e.message}")
         }
@@ -73,12 +73,12 @@ class PackageRepository @Inject constructor(
     /**
      * Mengambil semua paket
      */
-    suspend fun getAllPackages(): List<Paket> {
+    suspend fun getAllPackages(): List<PackageData> {
         return try {
             val snapshot = packageCollection.get().await()
             snapshot.documents.mapNotNull { document ->
                 try {
-                    document.toObject<Paket>()?.copy(id = document.id.hashCode())
+                    document.toObject<PackageData>()?.copy(id = document.id.hashCode())
                 } catch (e: Exception) {
                     null
                 }
@@ -91,13 +91,13 @@ class PackageRepository @Inject constructor(
     /**
      * Mengubah data paket
      */
-    suspend fun updatePackage(paket: Paket) {
+    suspend fun updatePackage(packageData: PackageData) {
         try {
             val snapshot = packageCollection.get().await()
-            val document = snapshot.documents.find { it.id.hashCode() == paket.id }
+            val document = snapshot.documents.find { it.id.hashCode() == packageData.id }
 
             document?.let {
-                packageCollection.document(it.id).set(paket).await()
+                packageCollection.document(it.id).set(packageData).await()
             } ?: throw Exception("Package not found")
         } catch (e: Exception) {
             throw Exception("Failed to update package: ${e.message}")

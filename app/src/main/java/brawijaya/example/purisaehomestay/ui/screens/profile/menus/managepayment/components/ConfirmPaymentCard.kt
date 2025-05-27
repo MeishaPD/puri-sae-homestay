@@ -111,7 +111,7 @@ fun ConfirmPaymentCard(
             )
 
             Text(
-                text = "${orderData.paymentType}",
+                text = orderData.paymentType,
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = Color.Gray
                 ),
@@ -148,9 +148,9 @@ fun ConfirmPaymentCard(
         }
         if (orderData.paymentStatus === PaymentStatusStage.DP || orderData.paymentStatus === PaymentStatusStage.SISA || orderData.paymentStatus === PaymentStatusStage.LUNAS) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 OutlinedButton(
                     onClick = { onReject() },
@@ -191,7 +191,7 @@ fun ConfirmPaymentCard(
             }
         } else if (orderData.paymentStatus === PaymentStatusStage.COMPLETED) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End
             ) {
@@ -212,7 +212,7 @@ fun ConfirmPaymentCard(
             }
         } else if (orderData.paymentStatus === PaymentStatusStage.WAITING) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End
             ) {
@@ -233,7 +233,7 @@ fun ConfirmPaymentCard(
             }
         } else if (orderData.paymentStatus === PaymentStatusStage.REJECTED) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End
             ) {

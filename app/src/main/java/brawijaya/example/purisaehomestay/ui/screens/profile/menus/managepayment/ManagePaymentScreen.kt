@@ -1,5 +1,6 @@
 package brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepayment
 
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -32,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import brawijaya.example.purisaehomestay.data.model.OrderData
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
 import brawijaya.example.purisaehomestay.ui.components.GeneralDialog
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepayment.components.ConfirmPaymentCard
@@ -65,6 +68,11 @@ fun ManagePaymentScreen(
             snackbarHostState.showSnackbar(message)
             orderViewModel.clearMessages()
         }
+    }
+
+    LaunchedEffect(Unit) {
+        orderViewModel.getAllOrders()
+        orderViewModel.getPackages()
     }
 
     Scaffold(
@@ -112,6 +120,7 @@ fun ManagePaymentScreen(
             } else {
                 ManagePaymentContent(
                     orderList = uiState.orderList,
+                    packageList = uiState.packageList,
                     onComplete = { orderId, paymentType ->
                         selectedOrderId = orderId
                         selectedOrderPaymentType = paymentType
@@ -161,7 +170,8 @@ fun ManagePaymentScreen(
 
 @Composable
 fun ManagePaymentContent(
-    orderList: List<brawijaya.example.purisaehomestay.data.model.OrderData>,
+    orderList: List<OrderData>,
+    packageList: List<PackageData>,
     onComplete: (String, String) -> Unit,
     onReject: (String) -> Unit,
 ) {
@@ -169,8 +179,16 @@ fun ManagePaymentContent(
         order.paymentStatus in listOf(
             PaymentStatusStage.DP,
             PaymentStatusStage.SISA,
-            PaymentStatusStage.LUNAS,
-            PaymentStatusStage.WAITING,
+            PaymentStatusStage.LUNAS
+        )
+    }
+
+    val waitingOrders = orderList.filter { order ->
+        order.paymentStatus == PaymentStatusStage.WAITING
+    }
+
+    val finishedOrders = orderList.filter { order ->
+        order.paymentStatus in listOf(
             PaymentStatusStage.COMPLETED,
             PaymentStatusStage.REJECTED
         )
@@ -181,17 +199,85 @@ fun ManagePaymentContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        items(pendingOrders) { order ->
-            ConfirmPaymentCard(
-                orderData = order,
-                paketTitle = "Paket ${order.packageRef}",
-                onComplete = {
-                    onComplete(order.documentId, order.paymentType)
-                },
-                onReject = {
-                    onReject(order.documentId)
-                }
-            )
+        if (pendingOrders.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Perlu dikonfirmasi",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                )
+            }
+
+            items(pendingOrders) { order ->
+                val refId = order.packageRef.substringAfter("package/").trim()
+                val packageData = packageList.find { it.id == refId.toInt() }
+                ConfirmPaymentCard(
+                    orderData = order,
+                    paketTitle = packageData?.title ?: "Paket ${order.packageRef}",
+                    onComplete = {
+                        onComplete(order.documentId, order.paymentType)
+                    },
+                    onReject = {
+                        onReject(order.documentId)
+                    }
+                )
+            }
+        }
+
+        if (waitingOrders.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Menunggu pelunasan",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                )
+            }
+
+            items(waitingOrders) { order ->
+                val refId = order.packageRef.substringAfter("package/")
+                val packageData = packageList.find { it.id == refId.toInt() }
+                ConfirmPaymentCard(
+                    orderData = order,
+                    paketTitle = packageData?.title ?: "Paket ${order.packageRef}",
+                    onComplete = {
+                        onComplete(order.documentId, order.paymentType)
+                    },
+                    onReject = {
+                        onReject(order.documentId)
+                    }
+                )
+            }
+        }
+
+        if (finishedOrders.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Telah dikonfirmasi",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    )
+                )
+            }
+
+            items(finishedOrders) { order ->
+                val refId = order.packageRef.substringAfter("package/")
+                val packageData = packageList.find { it.id == refId.toInt() }
+                ConfirmPaymentCard(
+                    orderData = order,
+                    paketTitle = packageData?.title ?: "Paket ${order.packageRef}",
+                    onComplete = {
+                        onComplete(order.documentId, order.paymentType)
+                    },
+                    onReject = {
+                        onReject(order.documentId)
+                    }
+                )
+            }
         }
     }
 }

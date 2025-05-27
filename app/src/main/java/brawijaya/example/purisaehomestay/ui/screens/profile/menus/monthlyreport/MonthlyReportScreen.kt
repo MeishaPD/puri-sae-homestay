@@ -19,10 +19,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -38,6 +37,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -47,17 +47,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.OrderData
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.order.components.HistoryCard
-import brawijaya.example.purisaehomestay.ui.screens.order.history.getImageResourceForOrder
-import brawijaya.example.purisaehomestay.ui.screens.order.history.getOrderTitle
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
@@ -78,6 +78,11 @@ fun MonthlyReportScreen(
     val uiState by viewModel.uiState.collectAsState()
     val profileState by profileViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.getAllOrders()
+        viewModel.getPackages()
+    }
 
     Scaffold(
         topBar = {
@@ -117,10 +122,22 @@ fun MonthlyReportScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            MonthlyReportContent(
-                orderList = uiState.orderList,
-                profileState = profileState
-            )
+            if (uiState.isLoading) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(color = PrimaryGold)
+                }
+            } else {
+                MonthlyReportContent(
+                    orderList = uiState.orderList,
+                    packageList = uiState.packageList,
+                    profileState = profileState
+                )
+            }
         }
     }
 }
@@ -128,18 +145,21 @@ fun MonthlyReportScreen(
 @Composable
 fun MonthlyReportContent(
     orderList: List<OrderData>,
-    profileState: ProfileUiState
+    profileState: ProfileUiState,
+    packageList: List<PackageData>
 ) {
-    var selectedMonth by remember { mutableStateOf("Januari") }
-    var selectedYear by remember { mutableStateOf("2025") }
-
-    var showMonthDialog by remember { mutableStateOf(false) }
-    var showYearDialog by remember { mutableStateOf(false) }
-
     val months = listOf(
         "Januari", "Februari", "Maret", "April", "Mei", "Juni",
         "Juli", "Agustus", "September", "Oktober", "November", "Desember"
     )
+
+    val currentMonthIndex = Calendar.getInstance().get(Calendar.MONTH)
+
+    var selectedMonth by remember { mutableStateOf(months[currentMonthIndex]) }
+    var selectedYear by remember { mutableStateOf("2025") }
+
+    var showMonthDialog by remember { mutableStateOf(false) }
+    var showYearDialog by remember { mutableStateOf(false) }
 
     val currentYear = Calendar.getInstance().get(Calendar.YEAR)
     val years = (currentYear - 5..currentYear).map { it.toString() }
@@ -281,6 +301,8 @@ fun MonthlyReportContent(
                 .padding(top = 16.dp)
         ) {
             items(filteredOrders) { order ->
+                val refId = order.packageRef.substringAfter("package/").trim()
+                val packageData = packageList.find { it.id == refId.toInt() }
                 HistoryCard(
                     guestName = order.guestName,
                     guestPhone = order.guestPhone,
@@ -289,10 +311,10 @@ fun MonthlyReportContent(
                     currentRoute = Screen.MonthlyReport.route,
                     date = order.createdAt.toDate(),
                     paymentStatus = order.paymentStatus,
-                    imageUrl = painterResource(id = getImageResourceForOrder(order)),
-                    title = getOrderTitle(order),
+                    imageUrl = packageData?.thumbnail_url ?: R.drawable.bungalow_single,
+                    title = packageData?.title ?: "Paket ${order.packageRef}",
                     totalPrice = order.totalPrice.toInt(),
-                    amountToBePaid = (order.totalPrice - order.paidAmount).toInt()
+                    paidAmount = order.paidAmount.toInt()
                 )
 
                 HorizontalDivider(
@@ -371,7 +393,7 @@ fun MonthlyReportContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(24.dp),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
                     }
                 }

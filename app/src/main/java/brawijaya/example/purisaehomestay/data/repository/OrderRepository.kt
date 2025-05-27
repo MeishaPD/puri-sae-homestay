@@ -2,7 +2,7 @@ package brawijaya.example.purisaehomestay.data.repository
 
 import android.util.Log
 import brawijaya.example.purisaehomestay.data.model.OrderData
-import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
@@ -58,7 +58,7 @@ class OrderRepository @Inject constructor(
     /**
      * Mendapatkan paket yang tersedia berdasarkan rentang tanggal
      */
-    suspend fun getAvailablePackages(checkInDate: Date, checkOutDate: Date): List<Paket> {
+    suspend fun getAvailablePackages(checkInDate: Date, checkOutDate: Date): List<PackageData> {
         return try {
             val checkInTimestamp = Timestamp(checkInDate)
             val checkOutTimestamp = Timestamp(checkOutDate)
@@ -98,7 +98,7 @@ class OrderRepository @Inject constructor(
 
             val allPackages = packageCollection.get().await().documents.mapNotNull { document ->
                 try {
-                    document.toObject<Paket>()?.copy(id = document.id.hashCode())
+                    document.toObject<PackageData>()?.copy(id = document.id.hashCode())
                 } catch (e: Exception) {
                     Log.e("OrderRepository", "Error parsing package: ${e.message}")
                     null

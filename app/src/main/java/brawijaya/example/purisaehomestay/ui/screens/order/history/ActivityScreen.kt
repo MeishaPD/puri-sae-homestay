@@ -1,5 +1,6 @@
 package brawijaya.example.purisaehomestay.ui.screens.order.history
 
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,7 +28,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.OrderData
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.order.components.HistoryCard
@@ -62,6 +63,10 @@ fun ActivityScreen(
         currentUser?.let { user ->
             viewModel.getOrdersByUser("/users/${user.uid}")
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.getPackages()
     }
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
@@ -119,6 +124,7 @@ fun ActivityScreen(
             } else {
                 ActivityContent(
                     orders = uiState.orderList,
+                    packages = uiState.packageList,
                     profileUiState = profileUiState,
                     onShowPaymentDialog = { orderId ->
                         viewModel.setCurrentOrderId(orderId)
@@ -152,7 +158,8 @@ fun ActivityScreen(
 fun ActivityContent(
     orders: List<OrderData>,
     profileUiState: ProfileUiState,
-    onShowPaymentDialog: (String) -> Unit
+    onShowPaymentDialog: (String) -> Unit,
+    packages: List<PackageData>
 ) {
     val inProcessOrders = orders.filter { it.paymentStatus != PaymentStatusStage.COMPLETED }
     val historyOrders = orders.filter { it.paymentStatus === PaymentStatusStage.COMPLETED }
@@ -175,6 +182,8 @@ fun ActivityContent(
             }
 
             items(inProcessOrders) { order ->
+                val refId = order.packageRef.substringAfter("package/").trim()
+                val packageData = packages.find { it.id == refId.toInt() }
                 HistoryCard(
                     guestName = if (profileUiState.isAdmin) order.guestName else null,
                     guestPhone = if (profileUiState.isAdmin) order.guestPhone else null,
@@ -182,8 +191,8 @@ fun ActivityContent(
                     profileUiState = if (profileUiState.isAdmin) profileUiState else null,
                     date = order.check_in.toDate(),
                     paymentStatus = order.paymentStatus,
-                    imageUrl = painterResource(id = getImageResourceForOrder(order)),
-                    title = getOrderTitle(order),
+                    imageUrl = packageData?.thumbnail_url ?: R.drawable.bungalow_single,
+                    title = packageData?.title ?: "Paket ${order.packageRef}",
                     totalPrice = order.totalPrice.toInt(),
                     amountToBePaid = (order.totalPrice - order.paidAmount).toInt(),
                     onButtonClick = {
@@ -210,6 +219,8 @@ fun ActivityContent(
             }
 
             itemsIndexed(historyOrders) { index, order ->
+                val refId = order.packageRef.substringAfter("package/").trim()
+                val packageData = packages.find { it.id == refId.toInt() }
                 HistoryCard(
                     guestName = if (profileUiState.isAdmin) order.guestName else null,
                     guestPhone = if (profileUiState.isAdmin) order.guestPhone else null,
@@ -217,8 +228,8 @@ fun ActivityContent(
                     profileUiState = if (profileUiState.isAdmin) profileUiState else null,
                     date = order.check_in.toDate(),
                     paymentStatus = order.paymentStatus,
-                    imageUrl = painterResource(id = getImageResourceForOrder(order)),
-                    title = getOrderTitle(order),
+                    imageUrl = packageData?.thumbnail_url ?: R.drawable.bungalow_single,
+                    title = packageData?.title ?: "Paket ${order.packageRef}",
                     totalPrice = order.totalPrice.toInt(),
                 )
 
@@ -246,27 +257,5 @@ fun ActivityContent(
                 }
             }
         }
-    }
-}
-
-
-@Composable
-fun getImageResourceForOrder(order: OrderData): Int {
-    return when {
-        order.bungalowQty > 0 && order.jogloQty > 0 -> R.drawable.bungalow_group
-        order.bungalowQty > 1 -> R.drawable.bungalow_group
-        order.bungalowQty == 1 -> R.drawable.bungalow_single
-        order.jogloQty > 0 -> R.drawable.wedding_venue
-        else -> R.drawable.bungalow_single
-    }
-}
-
-fun getOrderTitle(order: OrderData): String {
-    return when {
-        order.bungalowQty > 0 && order.jogloQty > 0 -> "Paket Kombinasi (${order.bungalowQty} Bungalow + ${order.jogloQty} Joglo)"
-        order.bungalowQty > 1 -> "Paket ${order.bungalowQty} Bungalow"
-        order.bungalowQty == 1 -> "Paket 1 Sewa Bungalow"
-        order.jogloQty > 0 -> "Paket ${order.jogloQty} Venue Wedding"
-        else -> "Paket Homestay"
     }
 }

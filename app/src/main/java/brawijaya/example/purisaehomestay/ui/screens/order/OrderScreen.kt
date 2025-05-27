@@ -22,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,7 +57,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.R
-import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.ui.components.BottomNavigation
 import brawijaya.example.purisaehomestay.ui.components.DateRangePicker
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
@@ -208,7 +209,7 @@ fun OrderScreen(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Loading...")
+                        CircularProgressIndicator(color = PrimaryGold)
                     }
                 }
 
@@ -311,7 +312,7 @@ fun OrderScreen(
 
 @Composable
 fun OrderScreenContent(
-    packageList: List<Paket>,
+    packageList: List<PackageData>,
     checkInDate: String,
     onCheckInDateSelected: (String) -> Unit,
     checkOutDate: String,
@@ -394,7 +395,7 @@ fun OrderScreenContent(
                     packageList.forEachIndexed { index, paket ->
                         PackageCard(
                             idx = index + 1,
-                            paket = paket,
+                            packageData = paket,
                             isSelected = selectedPackage == paket.id,
                             onSelect = { onPackageSelected(paket.id) }
                         )

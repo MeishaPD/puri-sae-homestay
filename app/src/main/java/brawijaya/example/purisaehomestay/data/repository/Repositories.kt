@@ -9,17 +9,13 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 import androidx.core.net.toUri
-import brawijaya.example.purisaehomestay.R
-import brawijaya.example.purisaehomestay.data.model.NewsData
 import brawijaya.example.purisaehomestay.data.model.NotificationData
 import brawijaya.example.purisaehomestay.data.model.NotificationType
-import brawijaya.example.purisaehomestay.data.model.Paket
 import brawijaya.example.purisaehomestay.data.model.PromoData
 import brawijaya.example.purisaehomestay.data.model.UserData
 import brawijaya.example.purisaehomestay.data.model.UserNotification
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

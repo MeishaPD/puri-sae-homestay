@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import brawijaya.example.purisaehomestay.data.model.OrderData
-import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
 import brawijaya.example.purisaehomestay.data.repository.OrderRepository
 import brawijaya.example.purisaehomestay.data.repository.PackageRepository
@@ -22,16 +22,16 @@ import javax.inject.Inject
 
 data class OrderUiState(
     val isLoading: Boolean = false,
-    val packageList: List<Paket> = emptyList(),
-    val selectedPackage: Paket? = null,
+    val packageList: List<PackageData> = emptyList(),
+    val selectedPackage: PackageData? = null,
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val hasSelectedDateRange: Boolean = false,
     val isCreatingOrder: Boolean = false,
     val showPaymentDialog: Boolean = false,
     val orderList: List<OrderData> = emptyList(),
-    val availablePackages: List<Paket> = emptyList(),
-    val selectedPaket: Paket? = null,
+    val availablePackages: List<PackageData> = emptyList(),
+    val selectedPackageData: PackageData? = null,
     val currentOrderId: String = ""
 )
 
@@ -44,24 +44,39 @@ class OrderViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(OrderUiState())
     val uiState: StateFlow<OrderUiState> = _uiState.asStateFlow()
 
-    init {
-        observeOrders()
+    fun getAllOrders() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                orderRepository.orders
+                    .catch { e ->
+                        _uiState.update {
+                            it.copy(
+                                errorMessage = "Gagal memuat daftar pesanan: ${e.message}",
+                                isLoading = false
+                            )
+                        }
+                    }
+                    .collect { orders ->
+                        _uiState.update { it.copy(orderList = orders, isLoading = false) }
+                    }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "Gagal mengambil semua pesanan: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
+        }
     }
 
-    private fun observeOrders() {
+    fun getPackages() {
         viewModelScope.launch {
-            orderRepository.orders
-                .catch { e ->
-                    _uiState.update {
-                        it.copy(
-                            errorMessage = "Gagal memuat daftar pesanan: ${e.message}",
-                            isLoading = false
-                        )
-                    }
-                }
-                .collect { orders ->
-                    _uiState.update { it.copy(orderList = orders, isLoading = false) }
-                }
+            val packages = packageRepository.getAllPackages()
+            _uiState.update {
+                it.copy(packageList = packages)
+            }
         }
     }
 
@@ -70,7 +85,7 @@ class OrderViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val paket = packageRepository.getPackageById(id)
-                _uiState.update { it.copy(selectedPaket = paket, isLoading = false) }
+                _uiState.update { it.copy(selectedPackageData = paket, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -95,6 +110,7 @@ class OrderViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            clearMessages()
             _uiState.update { it.copy(isLoading = true, hasSelectedDateRange = true) }
             try {
                 val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -275,6 +291,7 @@ class OrderViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
+                Log.d("UserRefOnVM", userRef)
                 val userOrders = orderRepository.getOrdersByUser(userRef)
                 _uiState.update {
                     it.copy(
