@@ -3,7 +3,7 @@ package brawijaya.example.purisaehomestay.ui.viewmodels
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.data.repository.CloudinaryRepository
 import brawijaya.example.purisaehomestay.data.repository.PackageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,8 +19,8 @@ import javax.inject.Inject
 data class PackageUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val selectedPaket: Paket? = null,
-    val packageList: List<Paket> = emptyList()
+    val selectedPackageData: PackageData? = null,
+    val packageList: List<PackageData> = emptyList()
 )
 
 @HiltViewModel
@@ -59,7 +59,7 @@ class PackageViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val paket = repository.getPackageById(id)
-                _uiState.update { it.copy(selectedPaket = paket, isLoading = false) }
+                _uiState.update { it.copy(selectedPackageData = paket, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -71,11 +71,11 @@ class PackageViewModel @Inject constructor(
         }
     }
 
-    fun createPackage(paket: Paket) {
+    fun createPackage(packageData: PackageData) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                repository.createPackage(paket)
+                repository.createPackage(packageData)
                 _uiState.update { it.copy(errorMessage = null, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
@@ -88,11 +88,11 @@ class PackageViewModel @Inject constructor(
         }
     }
 
-    fun updatePackage(paket: Paket) {
+    fun updatePackage(packageData: PackageData) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                repository.updatePackage(paket)
+                repository.updatePackage(packageData)
                 _uiState.update { it.copy(errorMessage = null, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
@@ -131,6 +131,6 @@ class PackageViewModel @Inject constructor(
     }
 
     fun resetSelectedPaket() {
-        _uiState.update { it.copy(selectedPaket = null) }
+        _uiState.update { it.copy(selectedPackageData = null) }
     }
 }

@@ -1,5 +1,5 @@
 package brawijaya.example.purisaehomestay.data.model
-import androidx.compose.ui.graphics.painter.Painter
+
 import com.google.firebase.Timestamp
 import java.util.Date
 
@@ -13,20 +13,6 @@ data class UserData(
 )
 
 data class PackageData(
-    val id: Int,
-    val title: String = "",
-    val features: List<String>,
-    val weekdayPrice: Double = 0.0,
-    val weekendPrice: Double = 0.0,
-    val imageUrl: Painter? = null,
-    val homestayRequirements: List<HomestayRequirement> = listOf(),
-    val minDurasiMenginap: Int = 1,
-    val isActive: Boolean = true,
-    val createdAt: Timestamp = Timestamp.now(),
-    val updatedAt: Timestamp = Timestamp.now()
-)
-
-data class Paket(
     val id: Int = 0,
     val title: String = "",
     val features: List<String> = emptyList(),
@@ -202,6 +188,7 @@ data class OrderData(
         createdAt = Timestamp.now()
     )
 }
+
 data class NewsData(
     val id: String = "",
     val imageUrls: List<String> = emptyList(),

@@ -1,17 +1,15 @@
 package brawijaya.example.purisaehomestay.ui.viewmodels
 
-import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import brawijaya.example.purisaehomestay.data.model.OrderData
-import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
 import brawijaya.example.purisaehomestay.data.repository.OrderRepository
 import brawijaya.example.purisaehomestay.data.repository.PackageRepository
 import com.google.firebase.Timestamp
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,16 +22,16 @@ import javax.inject.Inject
 
 data class OrderUiState(
     val isLoading: Boolean = false,
-    val packageList: List<Paket> = emptyList(),
-    val selectedPackage: Paket? = null,
+    val packageList: List<PackageData> = emptyList(),
+    val selectedPackage: PackageData? = null,
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val hasSelectedDateRange: Boolean = false,
     val isCreatingOrder: Boolean = false,
     val showPaymentDialog: Boolean = false,
     val orderList: List<OrderData> = emptyList(),
-    val availablePackages: List<Paket> = emptyList(),
-    val selectedPaket: Paket? = null,
+    val availablePackages: List<PackageData> = emptyList(),
+    val selectedPackageData: PackageData? = null,
     val currentOrderId: String = ""
 )
 
@@ -41,30 +39,44 @@ data class OrderUiState(
 class OrderViewModel @Inject constructor(
     private val packageRepository: PackageRepository,
     private val orderRepository: OrderRepository,
-    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrderUiState())
     val uiState: StateFlow<OrderUiState> = _uiState.asStateFlow()
 
-    init {
-        observeOrders()
+    fun getAllOrders() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                orderRepository.orders
+                    .catch { e ->
+                        _uiState.update {
+                            it.copy(
+                                errorMessage = "Gagal memuat daftar pesanan: ${e.message}",
+                                isLoading = false
+                            )
+                        }
+                    }
+                    .collect { orders ->
+                        _uiState.update { it.copy(orderList = orders, isLoading = false) }
+                    }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        errorMessage = "Gagal mengambil semua pesanan: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
+        }
     }
 
-    private fun observeOrders() {
+    fun getPackages() {
         viewModelScope.launch {
-            orderRepository.orders
-                .catch { e ->
-                    _uiState.update {
-                        it.copy(
-                            errorMessage = "Gagal memuat daftar pesanan: ${e.message}",
-                            isLoading = false
-                        )
-                    }
-                }
-                .collect { orders ->
-                    _uiState.update { it.copy(orderList = orders, isLoading = false) }
-                }
+            val packages = packageRepository.getAllPackages()
+            _uiState.update {
+                it.copy(packageList = packages)
+            }
         }
     }
 
@@ -73,7 +85,7 @@ class OrderViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val paket = packageRepository.getPackageById(id)
-                _uiState.update { it.copy(selectedPaket = paket, isLoading = false) }
+                _uiState.update { it.copy(selectedPackageData = paket, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -98,6 +110,7 @@ class OrderViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            clearMessages()
             _uiState.update { it.copy(isLoading = true, hasSelectedDateRange = true) }
             try {
                 val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -178,7 +191,7 @@ class OrderViewModel @Inject constructor(
                 )
 
                 val orderId = orderRepository.createOrder(orderData)
-                Log.d("ViewModel", "CurrentOrderId: ${orderId}")
+                Log.d("ViewModel", "CurrentOrderId: $orderId")
 
                 _uiState.update {
                     it.copy(
@@ -213,10 +226,10 @@ class OrderViewModel @Inject constructor(
 
                 when (order.paymentType) {
                     "Pembayaran DP 25%" -> {
-                        if (order.paymentStatus == PaymentStatusStage.DP) {
-                            newPaidAmount = order.totalPrice * 0.25
+                        newPaidAmount = if (order.paymentStatus == PaymentStatusStage.DP) {
+                            order.totalPrice * 0.25
                         } else if (order.paymentStatus == PaymentStatusStage.SISA) {
-                            newPaidAmount = order.totalPrice
+                            order.totalPrice
                         } else {
                             throw Exception("Invalid payment status for DP payment type")
                         }
@@ -278,6 +291,7 @@ class OrderViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
+                Log.d("UserRefOnVM", userRef)
                 val userOrders = orderRepository.getOrdersByUser(userRef)
                 _uiState.update {
                     it.copy(
@@ -355,7 +369,7 @@ class OrderViewModel @Inject constructor(
     }
 
     fun setCurrentOrderId(orderId: String) {
-        Log.d("ViewModel", "CurrentOrderId: ${orderId}")
+        Log.d("ViewModel", "CurrentOrderId: $orderId")
         _uiState.update { it.copy(currentOrderId = orderId) }
     }
 

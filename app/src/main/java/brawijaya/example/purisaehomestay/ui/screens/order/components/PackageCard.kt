@@ -23,7 +23,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
@@ -34,7 +34,7 @@ import brawijaya.example.purisaehomestay.R
 @Composable
 fun PackageCard(
     idx: Int,
-    paket: Paket,
+    packageData: PackageData,
     isSelected: Boolean,
     onSelect: () -> Unit
 ) {
@@ -59,7 +59,7 @@ fun PackageCard(
         ) {
             Row {
                 Image(
-                    painter = paket.thumbnail_url?.let {
+                    painter = packageData.thumbnail_url?.let {
                         rememberAsyncImagePainter(
                             ImageRequest.Builder(context)
                                 .data(data = it)
@@ -70,7 +70,7 @@ fun PackageCard(
                                 .build()
                         )
                     } ?: painterResource(id = R.drawable.bungalow_single),
-                    contentDescription = paket.title,
+                    contentDescription = packageData.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxHeight()
@@ -84,7 +84,7 @@ fun PackageCard(
                 ) {
                     item {
                         Text(
-                            text = paket.title,
+                            text = packageData.title,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
                             modifier = Modifier.padding(bottom = 4.dp),
@@ -92,7 +92,7 @@ fun PackageCard(
                     }
 
                     item {
-                        paket.features.forEach { feature ->
+                        packageData.features.forEach { feature ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -113,17 +113,17 @@ fun PackageCard(
                     item {
                         Text(
                             text = "${
-                                numberFormat.format(paket.price_weekday).replace("Rp", "Rp ")
+                                numberFormat.format(packageData.price_weekday).replace("Rp", "Rp ")
                             }/malam (weekday)",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             modifier = Modifier.padding(top = 4.dp)
                         )
 
-                        if (paket.price_weekend > 0) {
+                        if (packageData.price_weekend > 0) {
                             Text(
                                 text = "${
-                                    numberFormat.format(paket.price_weekend).replace("Rp", "Rp ")
+                                    numberFormat.format(packageData.price_weekend).replace("Rp", "Rp ")
                                 } (weekend/holiday)",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,

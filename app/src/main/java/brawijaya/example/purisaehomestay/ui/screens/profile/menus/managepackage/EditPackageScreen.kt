@@ -3,6 +3,7 @@ package brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,11 +21,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,10 +42,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,7 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.ui.components.GeneralDialog
 import brawijaya.example.purisaehomestay.ui.components.ImageUploader
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
@@ -80,10 +83,13 @@ fun EditPackageScreen(
     val scrollState = rememberScrollState()
 
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var packageToDelete by remember { mutableStateOf<Paket?>(null) }
+    var packageToDelete by remember { mutableStateOf<PackageData?>(null) }
     var showCancelDialog by remember { mutableStateOf(false) }
 
-    val paket = uiState.selectedPaket
+    var bungalowQtyDropdownExpanded by remember { mutableStateOf(false) }
+    var jogloQtyDropdownExpanded by remember { mutableStateOf(false) }
+
+    val paket = uiState.selectedPackageData
     val isLoading = uiState.isLoading
     val errorMessage = uiState.errorMessage
     val isUploadingImage = cldUiState.isUploading
@@ -109,8 +115,8 @@ fun EditPackageScreen(
     var title by remember { mutableStateOf("") }
     var weekdayPrice by remember { mutableStateOf("") }
     var weekendPrice by remember { mutableStateOf("") }
-    var bungalowQty by remember { mutableStateOf("") }
-    var jogloQty by remember { mutableStateOf("") }
+    var bungalowQty by remember { mutableIntStateOf(1) }
+    var jogloQty by remember { mutableIntStateOf(0) }
     val features = remember { mutableStateListOf<String>() }
     var newFeature by remember { mutableStateOf("") }
     var imageUrl by remember { mutableStateOf<String?>(null) }
@@ -122,27 +128,33 @@ fun EditPackageScreen(
             weekendPrice = it.price_weekend.toString()
             features.clear()
             features.addAll(it.features)
-            jogloQty = it.jogloQty.toString()
-            bungalowQty = it.bungalowQty.toString()
+            jogloQty = it.jogloQty
+            bungalowQty = it.bungalowQty
             imageUrl = it.thumbnail_url
         }
     }
 
-    LaunchedEffect(title, weekdayPrice, weekendPrice, bungalowQty, jogloQty, features.size, cloudinaryImageUrl) {
+    LaunchedEffect(
+        title,
+        weekdayPrice,
+        weekendPrice,
+        bungalowQty,
+        jogloQty,
+        features.size,
+        cloudinaryImageUrl
+    ) {
         if (isEditMode && paket != null) {
             hasUnsavedChanges = title != paket.title ||
                     weekdayPrice != paket.price_weekday.toString() ||
                     weekendPrice != paket.price_weekend.toString() ||
-                    bungalowQty != paket.bungalowQty.toString() ||
-                    jogloQty != paket.jogloQty.toString() ||
+                    bungalowQty != paket.bungalowQty ||
+                    jogloQty != paket.jogloQty ||
                     features.toList() != paket.features ||
                     cloudinaryImageUrl != null
         } else if (!isEditMode) {
             hasUnsavedChanges = title.isNotBlank() ||
                     weekdayPrice.isNotBlank() ||
                     weekendPrice.isNotBlank() ||
-                    bungalowQty.isNotBlank() ||
-                    jogloQty.isNotBlank() ||
                     features.isNotEmpty() ||
                     cloudinaryImageUrl != null
         }
@@ -193,22 +205,12 @@ fun EditPackageScreen(
             return
         }
 
-        if (bungalowQty.isBlank()) {
-            viewModel.updateErrorMessage("Jumlah Bungalow tidak boleh kosong")
-            return
-        }
-
-        if (jogloQty.isBlank()) {
-            viewModel.updateErrorMessage("Jumlah Joglo tidak boleh kosong")
-            return
-        }
-
         if (features.isEmpty()) {
             viewModel.updateErrorMessage("Minimal satu fitur harus ditambahkan")
             return
         }
 
-        val newPaket = Paket(
+        val newPackageData = PackageData(
             id = paketId ?: (uiState.packageList.maxOfOrNull { it.id } ?: 0),
             title = title,
             features = features.toList(),
@@ -220,9 +222,9 @@ fun EditPackageScreen(
         )
 
         if (isEditMode) {
-            viewModel.updatePackage(newPaket)
+            viewModel.updatePackage(newPackageData)
         } else {
-            viewModel.createPackage(newPaket)
+            viewModel.createPackage(newPackageData)
         }
 
 //        viewModel.markImageAsSaved()
@@ -358,45 +360,136 @@ fun EditPackageScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        OutlinedTextField(
-                            value = bungalowQty,
-                            onValueChange = {
-                                if (it.isEmpty() || it.all { char -> char.isDigit() }) {
-                                    bungalowQty = it
-                                }
-                            },
-                            label = { Text("Bungalow QTY") },
-                            modifier = Modifier.weight(1f),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
-                                focusedBorderColor = PrimaryGold
-                            ),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number,
-                                imeAction = ImeAction.Done
-                            ),
-                            singleLine = true
-                        )
+                        Box(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            OutlinedTextField(
+                                value = bungalowQty.toString(),
+                                onValueChange = {},
+                                label = { Text("Jumlah Bungalow") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        bungalowQtyDropdownExpanded = true
+                                    },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
+                                    focusedBorderColor = PrimaryGold,
+                                    disabledBorderColor = PrimaryGold,
+                                    disabledTextColor = Color.Black,
+                                    disabledLabelColor = Color.Black
+                                ),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done
+                                ),
+                                singleLine = true,
+                                readOnly = true,
+                                enabled = false,
+                                trailingIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            bungalowQtyDropdownExpanded = true
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                                            contentDescription = "Dropdown"
+                                        )
+                                    }
+                                },
+                                shape = RoundedCornerShape(8.dp)
+                            )
 
-                        OutlinedTextField(
-                            value = jogloQty,
-                            onValueChange = {
-                                if (it.isEmpty() || it.all { char -> char.isDigit() }) {
-                                    jogloQty = it
-                                }
-                            },
-                            label = { Text("Joglo QTY") },
-                            modifier = Modifier.weight(1f),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
-                                focusedBorderColor = PrimaryGold
-                            ),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number,
-                                imeAction = ImeAction.Done
-                            ),
-                            singleLine = true
-                        )
+                            DropdownMenu(
+                                expanded = bungalowQtyDropdownExpanded,
+                                onDismissRequest = { bungalowQtyDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("1") },
+                                    onClick = {
+                                        bungalowQty = 1
+                                        bungalowQtyDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("2") },
+                                    onClick = {
+                                        bungalowQty = 2
+                                        bungalowQtyDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("3") },
+                                    onClick = {
+                                        bungalowQty = 3
+                                        bungalowQtyDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            OutlinedTextField(
+                                value = jogloQty.toString(),
+                                onValueChange = {},
+                                label = { Text("Jumlah Joglo") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        jogloQtyDropdownExpanded = true
+                                    },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
+                                    focusedBorderColor = PrimaryGold,
+                                    disabledBorderColor = PrimaryGold,
+                                    disabledTextColor = Color.Black,
+                                    disabledLabelColor = Color.Black
+                                ),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done
+                                ),
+                                singleLine = true,
+                                readOnly = true,
+                                enabled = false,
+                                trailingIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            jogloQtyDropdownExpanded = true
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                                            contentDescription = "Dropdown"
+                                        )
+                                    }
+                                },
+                                shape = RoundedCornerShape(8.dp)
+                            )
+
+                            DropdownMenu(
+                                expanded = jogloQtyDropdownExpanded,
+                                onDismissRequest = { jogloQtyDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("0") },
+                                    onClick = {
+                                        jogloQty = 0
+                                        jogloQtyDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("1") },
+                                    onClick = {
+                                        jogloQty = 1
+                                        jogloQtyDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -458,10 +551,7 @@ fun EditPackageScreen(
                             features.forEachIndexed { index, feature ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                    ),
-                                    elevation = CardDefaults.cardElevation(2.dp)
+                                    border = BorderStroke(1.dp, PrimaryGold)
                                 ) {
                                     Row(
                                         modifier = Modifier
@@ -482,7 +572,7 @@ fun EditPackageScreen(
                                             Icon(
                                                 imageVector = Icons.Rounded.Delete,
                                                 contentDescription = "Hapus Fitur",
-                                                tint = Color.Red
+                                                tint = PrimaryGold
                                             )
                                         }
                                     }
