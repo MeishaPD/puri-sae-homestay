@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import brawijaya.example.purisaehomestay.data.model.PromoData
 import brawijaya.example.purisaehomestay.data.repository.PromoRepository
+import brawijaya.example.purisaehomestay.utils.DateUtils
 import com.google.firebase.Timestamp
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Date
 import javax.inject.Inject
 
 data class PromoUiState(
@@ -30,7 +32,9 @@ data class PromoUiState(
     val validationError: String? = null,
 
     val promoList: List<PromoData> = emptyList(),
-    val selectedPromo: PromoData? = null
+    val selectedPromo: PromoData? = null,
+    val activePromos: List<PromoData> = emptyList(),
+    val packagePromos: List<PromoData> = emptyList()
 )
 
 @HiltViewModel
@@ -71,6 +75,114 @@ class PromoViewModel @Inject constructor(
                     it.copy(
                         isLoadingList = false,
                         listError = e.message ?: "Gagal memuat promo"
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Fetch active promos for current date
+     */
+    fun fetchActivePromos() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingList = true, listError = null) }
+            try {
+                val activePromos = promoRepository.getActivePromos()
+                _uiState.update {
+                    it.copy(
+                        isLoadingList = false,
+                        activePromos = activePromos,
+                        listError = null
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoadingList = false,
+                        listError = e.message ?: "Gagal memuat promo aktif"
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Fetch active promos for specific date range
+     */
+    fun fetchActivePromosForDateRange(checkInDate: Date, checkOutDate: Date) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingList = true, listError = null) }
+            try {
+                val activePromos = promoRepository.getActivePromosForDateRange(checkInDate, checkOutDate)
+                _uiState.update {
+                    it.copy(
+                        isLoadingList = false,
+                        activePromos = activePromos,
+                        listError = null
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoadingList = false,
+                        listError = e.message ?: "Gagal memuat promo untuk tanggal tersebut"
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Fetch active promos for date range using date strings
+     */
+    fun fetchActivePromosForDateRange(checkInDateString: String, checkOutDateString: String) {
+        viewModelScope.launch {
+            try {
+                val checkInDate = DateUtils.parseDate(checkInDateString)
+                val checkOutDate = DateUtils.parseDate(checkOutDateString)
+
+                if (checkInDate != null && checkOutDate != null) {
+                    fetchActivePromosForDateRange(checkInDate, checkOutDate)
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isLoadingList = false,
+                            listError = "Format tanggal tidak valid"
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoadingList = false,
+                        listError = e.message ?: "Gagal memproses tanggal"
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Fetch promos by package reference
+     */
+    fun fetchPromosByPackage(packageRef: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingList = true, listError = null) }
+            try {
+                val packagePromos = promoRepository.getPromosByPackage(packageRef)
+                _uiState.update {
+                    it.copy(
+                        isLoadingList = false,
+                        packagePromos = packagePromos,
+                        listError = null
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoadingList = false,
+                        listError = e.message ?: "Gagal memuat promo paket"
                     )
                 }
             }
@@ -185,6 +297,32 @@ class PromoViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Get promo by promo code
+     */
+    fun getPromoByPromoCode(promoCode: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingForm = true) }
+            try {
+                val promo = promoRepository.getPromoByPromoCode(promoCode)
+                _uiState.update {
+                    it.copy(
+                        selectedPromo = promo,
+                        isLoadingForm = false,
+                        formError = if (promo == null) "Promo dengan kode '$promoCode' tidak ditemukan" else null
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        formError = "Gagal mengambil data promo: ${e.message}",
+                        isLoadingForm = false
+                    )
+                }
+            }
+        }
+    }
+
     fun generateUniqueReferralCode(callback: (String?) -> Unit) {
         viewModelScope.launch {
             try {
@@ -207,7 +345,15 @@ class PromoViewModel @Inject constructor(
         }
     }
 
-    fun validatePromoCode(promoCode: String, packageRef: String? = null) {
+    /**
+     * Validate promo code with date validation support
+     */
+    fun validatePromoCode(
+        promoCode: String,
+        packageRef: String? = null,
+        checkInDate: Date? = null,
+        checkOutDate: Date? = null
+    ) {
         viewModelScope.launch {
             _uiState.update {
                 it.copy(
@@ -218,7 +364,47 @@ class PromoViewModel @Inject constructor(
             }
 
             try {
-                val result = promoRepository.validatePromoCode(promoCode, packageRef)
+                val result = promoRepository.validatePromoCode(promoCode, packageRef, checkInDate, checkOutDate)
+                _uiState.update {
+                    it.copy(
+                        isLoadingValidation = false,
+                        isValidPromo = result.isValid,
+                        validatedPromo = result.promo,
+                        validationError = result.errorMessage
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoadingValidation = false,
+                        isValidPromo = false,
+                        validationError = e.message ?: "Gagal memvalidasi kode promo"
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Validate promo code using date strings
+     */
+    fun validatePromoCode(
+        promoCode: String,
+        packageRef: String? = null,
+        checkInDateString: String = "",
+        checkOutDateString: String = ""
+    ) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isLoadingValidation = true,
+                    validationError = null,
+                    isValidPromo = false
+                )
+            }
+
+            try {
+                val result = promoRepository.validatePromoCode(promoCode, packageRef, checkInDateString, checkOutDateString)
                 _uiState.update {
                     it.copy(
                         isLoadingValidation = false,
@@ -247,15 +433,25 @@ class PromoViewModel @Inject constructor(
         return promoRepository.getDiscountAmount(originalPrice, promo)
     }
 
+    /**
+     * Enhanced price calculation with date validation
+     */
     fun calculatePriceWithPromo(
         originalPrice: Double,
         promoCode: String,
         packageRef: String? = null,
+        checkInDate: Date? = null,
+        checkOutDate: Date? = null,
         callback: (PriceCalculationResult) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                val validationResult = promoRepository.validatePromoCode(promoCode, packageRef)
+                val validationResult = promoRepository.validatePromoCode(
+                    promoCode,
+                    packageRef,
+                    checkInDate,
+                    checkOutDate
+                )
 
                 if (!validationResult.isValid) {
                     callback(
@@ -294,6 +490,44 @@ class PromoViewModel @Inject constructor(
                         finalPrice = originalPrice,
                         discountAmount = 0.0,
                         errorMessage = e.message ?: "Gagal menghitung harga promo"
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * Calculate price with promo using date strings
+     */
+    fun calculatePriceWithPromo(
+        originalPrice: Double,
+        promoCode: String,
+        packageRef: String? = null,
+        checkInDateString: String = "",
+        checkOutDateString: String = "",
+        callback: (PriceCalculationResult) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val checkInDate = if (checkInDateString.isNotEmpty()) DateUtils.parseDate(checkInDateString) else null
+                val checkOutDate = if (checkOutDateString.isNotEmpty()) DateUtils.parseDate(checkOutDateString) else null
+
+                calculatePriceWithPromo(
+                    originalPrice = originalPrice,
+                    promoCode = promoCode,
+                    packageRef = packageRef,
+                    checkInDate = checkInDate,
+                    checkOutDate = checkOutDate,
+                    callback = callback
+                )
+            } catch (e: Exception) {
+                callback(
+                    PriceCalculationResult(
+                        isValid = false,
+                        originalPrice = originalPrice,
+                        finalPrice = originalPrice,
+                        discountAmount = 0.0,
+                        errorMessage = "Error parsing dates: ${e.message}"
                     )
                 )
             }
@@ -345,6 +579,14 @@ class PromoViewModel @Inject constructor(
 
     fun refreshPromos() {
         fetchAllPromos()
+    }
+
+    fun clearActivePromos() {
+        _uiState.update { it.copy(activePromos = emptyList()) }
+    }
+
+    fun clearPackagePromos() {
+        _uiState.update { it.copy(packagePromos = emptyList()) }
     }
 }
 

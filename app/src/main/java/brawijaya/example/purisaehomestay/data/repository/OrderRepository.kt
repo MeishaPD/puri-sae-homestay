@@ -142,15 +142,22 @@ class OrderRepository @Inject constructor(
     }
 
     /**
-     * Validasi kode promo dan hitung harga
+     * Validasi kode promo dan hitung harga dengan tanggal check-in/check-out
      */
     suspend fun validatePromoAndCalculatePrice(
         promoCode: String,
         originalPrice: Double,
-        packageRef: String? = null
+        packageRef: String? = null,
+        checkInDate: Date? = null,
+        checkOutDate: Date? = null
     ): PromoCalculationResult {
         return try {
-            val validationResult = promoRepository.validatePromoCode(promoCode, packageRef)
+            val validationResult = promoRepository.validatePromoCode(
+                promoCode = promoCode,
+                packageRef = packageRef,
+                checkInDate = checkInDate,
+                checkOutDate = checkOutDate
+            )
 
             if (!validationResult.isValid) {
                 return PromoCalculationResult(
@@ -189,6 +196,39 @@ class OrderRepository @Inject constructor(
     }
 
     /**
+     * Helper method to validate promo with date strings
+     */
+    suspend fun validatePromoAndCalculatePrice(
+        promoCode: String,
+        originalPrice: Double,
+        packageRef: String? = null,
+        checkInDateString: String? = null,
+        checkOutDateString: String? = null
+    ): PromoCalculationResult {
+        return try {
+            val checkInDate = checkInDateString?.let { DateUtils.parseDate(it) }
+            val checkOutDate = checkOutDateString?.let { DateUtils.parseDate(it) }
+
+            validatePromoAndCalculatePrice(
+                promoCode = promoCode,
+                originalPrice = originalPrice,
+                packageRef = packageRef,
+                checkInDate = checkInDate,
+                checkOutDate = checkOutDate
+            )
+        } catch (e: Exception) {
+            PromoCalculationResult(
+                isValid = false,
+                errorMessage = "Error parsing dates: ${e.message}",
+                originalPrice = originalPrice,
+                finalPrice = originalPrice,
+                discountAmount = 0.0,
+                promo = null
+            )
+        }
+    }
+
+    /**
      * Membuat pesanan baru
      */
     suspend fun createOrder(orderData: OrderData): String {
@@ -216,7 +256,9 @@ class OrderRepository @Inject constructor(
                 val promoResult = validatePromoAndCalculatePrice(
                     promoCode = promoCode,
                     originalPrice = orderData.totalPrice,
-                    packageRef = orderData.packageRef
+                    packageRef = orderData.packageRef,
+                    checkInDate = orderData.check_in.toDate(),
+                    checkOutDate = orderData.check_out.toDate()
                 )
 
                 if (!promoResult.isValid) {
@@ -271,30 +313,25 @@ class OrderRepository @Inject constructor(
         promoCode: String? = null
     ): CreateOrderResult {
         return try {
-            // Parse dates using DateUtils
             val checkInDate = DateUtils.parseDate(checkInDateString)
                 ?: throw Exception("Invalid check-in date format")
             val checkOutDate = DateUtils.parseDate(checkOutDateString)
                 ?: throw Exception("Invalid check-out date format")
 
-            // Validate date range
             if (!DateUtils.isValidCheckOutDate(checkInDateString, checkOutDateString)) {
                 throw Exception("Check-out date must be after check-in date")
             }
 
-            // Calculate nights and pricing
             val numberOfNights = DateUtils.calculateNights(checkInDateString, checkOutDateString)
             val pricePerNight = selectedPackage.price_weekday
             val totalPrice = pricePerNight * numberOfNights
 
-            // Determine payment status
             val paymentStatus = if (paymentType == "Pembayaran Lunas") {
                 PaymentStatusStage.LUNAS
             } else {
                 PaymentStatusStage.DP
             }
 
-            // Create order data
             val orderData = OrderData(
                 check_in = Timestamp(checkInDate),
                 check_out = Timestamp(checkOutDate),
@@ -317,9 +354,37 @@ class OrderRepository @Inject constructor(
                 createdAt = Timestamp.now()
             )
 
-            // Create order with or without promo
             if (!promoCode.isNullOrEmpty()) {
-                createOrderWithPromo(orderData, promoCode)
+                val promoResult = validatePromoAndCalculatePrice(
+                    promoCode = promoCode,
+                    originalPrice = totalPrice,
+                    packageRef = orderData.packageRef,
+                    checkInDateString = checkInDateString,
+                    checkOutDateString = checkOutDateString
+                )
+
+                if (!promoResult.isValid) {
+                    return CreateOrderResult(
+                        success = false,
+                        orderId = null,
+                        errorMessage = promoResult.errorMessage
+                    )
+                }
+
+                val finalOrderData = orderData.copy(
+                    totalPrice = promoResult.finalPrice,
+                    promoRef = promoResult.promo?.id
+                )
+
+                val orderId = createOrder(finalOrderData)
+                CreateOrderResult(
+                    success = true,
+                    orderId = orderId,
+                    errorMessage = null,
+                    appliedPromo = promoResult.promo,
+                    discountAmount = promoResult.discountAmount,
+                    finalPrice = promoResult.finalPrice
+                )
             } else {
                 val orderId = createOrder(orderData)
                 CreateOrderResult(

@@ -105,17 +105,23 @@ fun OrderScreen(
         LocalLifecycleOwner.current
     ) { imageUrl ->
         imageUrl?.let {
-            viewModel.updatePaymentUrl(it)
+            Log.d("OrderScreen", "Received uploaded image URL: $it")
+
+            viewModel.handlePaymentProofUpload(it)
+
+            savedStateHandle.remove<String>("uploaded_image_url")
         }
     }
 
     val userName = profileViewModel.getUserName()
     val userPhone = profileViewModel.getUserPhoneNumber()
 
-    LaunchedEffect(checkInDate, checkOutDate, selectedPackageId) {
+    LaunchedEffect(checkInDate, checkOutDate, selectedPackageId, promoCode) {
         if (checkInDate.isNotEmpty() && checkOutDate.isNotEmpty() && checkOutError == null) {
             viewModel.getAvailablePackages(checkInDate, checkOutDate)
-            viewModel.calculatePriceWithPromo(checkInDate, checkOutDate, selectedPackageId)
+            if (selectedPackageId > 0) {
+                viewModel.calculatePriceWithPromo(checkInDate, checkOutDate, selectedPackageId)
+            }
         }
     }
 
@@ -139,6 +145,12 @@ fun OrderScreen(
         if (uiState.promoValidationMessage != null) {
             delay(3000)
             viewModel.clearPromoValidationMessage()
+        }
+    }
+
+    LaunchedEffect(uiState.promoCode) {
+        if (promoCode != uiState.promoCode) {
+            promoCode = uiState.promoCode
         }
     }
 
@@ -169,6 +181,9 @@ fun OrderScreen(
     val onPackageSelected = { id: Int ->
         selectedPackageId = id
         viewModel.getPaketById(id)
+        if (checkInDate.isNotEmpty() && checkOutDate.isNotEmpty() && checkOutError == null) {
+            viewModel.calculatePriceWithPromo(checkInDate, checkOutDate, id)
+        }
     }
 
 
@@ -323,14 +338,18 @@ fun OrderScreen(
                     val totalPrice = uiState.finalPrice
                     val remainingAmount = totalPrice - 0
 
+                    Log.d("Pending order data", uiState.pendingOrderData.toString())
+
                     PaymentDialog(
                         totalPrice = totalPrice,
                         paidAmount = 0.0,
                         discountAmount = uiState.discountAmount,
                         remainingAmount = remainingAmount,
-                        onDismiss = { viewModel.dismissPaymentDialog() },
+                        onDismiss = {
+                            viewModel.dismissPaymentDialog()
+                        },
                         onUploadClicked = {
-                            navController.navigate(Screen.UploadPayment.route)
+                            navController.navigate(Screen.UploadPayment.createRoute())
                         }
                     )
                 }
@@ -691,7 +710,10 @@ fun OrderScreenContent(
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    text = "Rp ${NumberFormat.getNumberInstance(Locale("id", "ID")).format(originalPrice)}",
+                                    text = "Rp ${
+                                        NumberFormat.getNumberInstance(Locale("id", "ID"))
+                                            .format(originalPrice)
+                                    }",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
@@ -706,7 +728,14 @@ fun OrderScreenContent(
                                     color = Color.Green
                                 )
                                 Text(
-                                    text = "- Rp ${NumberFormat.getNumberInstance(Locale("id", "ID")).format(discountAmount)}",
+                                    text = "- Rp ${
+                                        NumberFormat.getNumberInstance(
+                                            Locale(
+                                                "id",
+                                                "ID"
+                                            )
+                                        ).format(discountAmount)
+                                    }",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color.Green
                                 )
@@ -728,7 +757,10 @@ fun OrderScreenContent(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Rp ${NumberFormat.getNumberInstance(Locale("id", "ID")).format(finalPrice)}",
+                                    text = "Rp ${
+                                        NumberFormat.getNumberInstance(Locale("id", "ID"))
+                                            .format(finalPrice)
+                                    }",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = PrimaryGold
@@ -747,13 +779,15 @@ fun OrderScreenContent(
                         if (profileState.isAdmin) {
                             if (guestName.isNotBlank() && guestPhone.isNotBlank() &&
                                 guestCount.isNotBlank() && checkInDate.isNotBlank() &&
-                                checkOutDate.isNotBlank() && selectedPaymentOption != "Jenis Pembayaran") {
+                                checkOutDate.isNotBlank() && selectedPaymentOption != "Jenis Pembayaran"
+                            ) {
                                 Log.d("DAMM", "TESTING")
                                 onCreateOrder(selectedPaymentOption)
                             }
                         } else {
                             if (guestCount.isNotBlank() && checkInDate.isNotBlank() &&
-                                checkOutDate.isNotBlank() && selectedPaymentOption != "Jenis Pembayaran") {
+                                checkOutDate.isNotBlank() && selectedPaymentOption != "Jenis Pembayaran"
+                            ) {
                                 onCreateOrder(selectedPaymentOption)
                             }
                         }

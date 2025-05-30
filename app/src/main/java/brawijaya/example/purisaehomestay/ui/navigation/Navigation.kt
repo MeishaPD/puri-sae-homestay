@@ -1,6 +1,8 @@
 package brawijaya.example.purisaehomestay.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -25,6 +27,7 @@ import brawijaya.example.purisaehomestay.ui.screens.profile.menus.monthlyreport.
 import brawijaya.example.purisaehomestay.ui.screens.promo.EditPromoScreen
 import brawijaya.example.purisaehomestay.ui.screens.promo.PromoScreen
 import brawijaya.example.purisaehomestay.ui.screens.upload.UploadScreen
+import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
 import kotlin.text.isNullOrEmpty
 
 sealed class Screen(val route: String) {
@@ -41,7 +44,6 @@ sealed class Screen(val route: String) {
     object Activities : Screen("activities")
     object ManagePackage : Screen("manage_package")
     object ManageNews : Screen("manage_news")
-    object UploadPayment : Screen("upload_payment")
     object ManagePayment : Screen("manage_payment")
     object MonthlyReport : Screen("monthly_report")
     object EditPackage : Screen("edit_package?paketId={paketId}") {
@@ -70,6 +72,16 @@ sealed class Screen(val route: String) {
                 "edit_promo?promoId=$promoId"
             } else {
                 "edit_promo"
+            }
+        }
+    }
+
+    object UploadPayment : Screen("upload_payment?orderId={orderId}&source={source}") {
+        fun createRoute(orderId: String? = null, source: String = "order"): String {
+            return if (!orderId.isNullOrEmpty()) {
+                "upload_payment?orderId=$orderId&source=$source"
+            } else {
+                "upload_payment?source=$source"
             }
         }
     }
@@ -173,14 +185,58 @@ fun AppNavigation(navController: NavHostController) {
             )
         }
 
-        composable(Screen.UploadPayment.route) {
+        composable(
+            route = Screen.UploadPayment.route,
+            arguments = listOf(
+                navArgument("orderId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("source") {
+                    type = NavType.StringType
+                    defaultValue = "order"
+                }
+            )
+        ) { backStackEntry ->
+            val orderId = backStackEntry.arguments?.getString("orderId")
+            val source = backStackEntry.arguments?.getString("source") ?: "order"
+
+            val orderViewModel: OrderViewModel = when (source) {
+                "order" -> {
+                    val previousEntry = navController.previousBackStackEntry
+                    if (previousEntry?.destination?.route == Screen.Order.route) {
+                        hiltViewModel(previousEntry)
+                    } else {
+                        hiltViewModel()
+                    }
+                }
+                "activity" -> hiltViewModel()
+                else -> hiltViewModel()
+            }
+
             UploadScreen(
                 navController = navController,
+                orderViewModel = orderViewModel,
+                orderId = orderId,
+                source = source,
                 onImageUploaded = { imageUrl ->
-                    navController.previousBackStackEntry?.savedStateHandle?.set(
-                        "uploaded_image_url",
-                        imageUrl
-                    )
+                    when (source) {
+                        "order" -> {
+                            if (!orderId.isNullOrEmpty()) {
+                                orderViewModel.setCurrentOrderId(orderId)
+                            }
+                            orderViewModel.handlePaymentProofUpload(imageUrl)
+                        }
+                        "activity" -> {
+                            if (!orderId.isNullOrEmpty()) {
+                                orderViewModel.setCurrentOrderId(orderId)
+                                orderViewModel.handleDPPaymentUpload(imageUrl)
+                            }
+                            navController.previousBackStackEntry?.savedStateHandle?.set("refresh_data", true)
+                            navController.popBackStack()
+                        }
+                    }
                 }
             )
         }

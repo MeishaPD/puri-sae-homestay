@@ -271,7 +271,6 @@ fun PaymentDialog(
 
                 Button(
                     onClick = {
-                        onDismiss()
                         onUploadClicked()
                     },
                     modifier = Modifier

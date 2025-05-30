@@ -69,11 +69,17 @@ fun ActivityScreen(
     }
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-    savedStateHandle?.getLiveData<String>("uploaded_image_url")?.observe(
+    savedStateHandle?.getLiveData<Boolean>("refresh_data")?.observe(
         LocalLifecycleOwner.current
-    ) { imageUrl ->
-        imageUrl?.let {
-            viewModel.updateDPImageUrl(it)
+    ) { shouldRefresh ->
+        if (shouldRefresh == true) {
+            currentUser?.let { user ->
+                viewModel.getOrdersByUser("/users/${user.uid}")
+            }
+
+            savedStateHandle.remove<Boolean>("refresh_data")
+
+            viewModel.setShowPaymentDialog(false)
         }
     }
 
@@ -144,7 +150,12 @@ fun ActivityScreen(
                         remainingAmount = order.totalPrice * 0.75,
                         onDismiss = { viewModel.setShowPaymentDialog(false) },
                         onUploadClicked = {
-                            navController.navigate(Screen.UploadPayment.route)
+                            navController.navigate(
+                                Screen.UploadPayment.createRoute(
+                                    orderId = uiState.currentOrderId,
+                                    source = "activity"
+                                )
+                            )
                         },
                         discountAmount = uiState.discountAmount
                     )
@@ -161,8 +172,10 @@ fun ActivityContent(
     onShowPaymentDialog: (String) -> Unit,
     packages: List<PackageData>
 ) {
-    val inProcessOrders = orders.filter { it.paymentStatus != PaymentStatusStage.COMPLETED }
-    val historyOrders = orders.filter { it.paymentStatus === PaymentStatusStage.COMPLETED }
+    val inProcessOrders =
+        orders.filter { it.paymentStatus != PaymentStatusStage.COMPLETED && it.paymentStatus != PaymentStatusStage.REJECTED }
+    val historyOrders =
+        orders.filter { it.paymentStatus == PaymentStatusStage.COMPLETED || it.paymentStatus == PaymentStatusStage.REJECTED }
 
     LazyColumn(
         modifier = Modifier

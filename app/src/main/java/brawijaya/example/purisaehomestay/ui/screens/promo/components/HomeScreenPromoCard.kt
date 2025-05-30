@@ -1,6 +1,5 @@
 package brawijaya.example.purisaehomestay.ui.screens.promo.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +30,7 @@ import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.PromoData
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.utils.DateUtils
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.AsyncImage
 import coil.request.ImageRequest
 
 @Composable
@@ -47,7 +46,7 @@ fun HomeScreenPromoCard(
     Card(
         modifier = Modifier
             .width(240.dp)
-            .height(120.dp)
+            .height(155.dp)
             .padding(end = 8.dp)
             .clickable {
                 onClick()
@@ -62,23 +61,21 @@ fun HomeScreenPromoCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Row {
-                Image(
-                    painter = rememberAsyncImagePainter(
-                        ImageRequest.Builder(context)
-                            .data(data = promoData.imageUrl)
-                            .apply(block = {
-                                crossfade(true)
-                                placeholder(R.drawable.bungalow_single)
-                                error(R.drawable.bungalow_single)
-                            })
-                            .build()
-                    ),
-                    contentDescription = promoData.title,
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(data = promoData.imageUrl)
+                        .apply(block = {
+                            crossfade(true)
+                            placeholder(R.drawable.bungalow_single)
+                            error(R.drawable.bungalow_single)
+                        })
+                        .build(),
                     contentScale = ContentScale.FillBounds,
                     modifier = Modifier
                         .fillMaxHeight()
                         .width(100.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentDescription = promoData.title,
                 )
 
                 Column(
@@ -112,8 +109,8 @@ fun HomeScreenPromoCard(
 
             Box(
                 modifier = Modifier
-                    .height(45.dp)
-                    .width(80.dp)
+                    .height(30.dp)
+                    .width(65.dp)
                     .background(
                         color = PrimaryGold,
                         shape = RoundedCornerShape(

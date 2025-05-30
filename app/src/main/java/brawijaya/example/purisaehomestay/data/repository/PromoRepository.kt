@@ -1,5 +1,6 @@
 package brawijaya.example.purisaehomestay.data.repository
 
+import android.util.Log
 import brawijaya.example.purisaehomestay.data.model.PromoData
 import brawijaya.example.purisaehomestay.utils.DateUtils
 import com.google.firebase.Timestamp
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 import java.util.Random
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -76,7 +78,15 @@ class PromoRepository @Inject constructor(
         }
     }
 
-    suspend fun validatePromoCode(promoCode: String, packageRef: String? = null): PromoValidationResult {
+    /**
+     * Validate promo code based on check-in and check-out dates instead of current date
+     */
+    suspend fun validatePromoCode(
+        promoCode: String,
+        packageRef: String? = null,
+        checkInDate: Date? = null,
+        checkOutDate: Date? = null
+    ): PromoValidationResult {
         return try {
             if (promoCode.isBlank()) {
                 return PromoValidationResult(
@@ -94,26 +104,60 @@ class PromoRepository @Inject constructor(
                 )
             }
 
-            val currentDate = DateUtils.getCurrentDate()
+            val validationDate = checkInDate ?: DateUtils.getCurrentDate()
             val startDate = promo.startDate.toDate()
             val endDate = promo.endDate.toDate()
 
-            if (currentDate.before(startDate)) {
+            Log.d("PromoRepository", "=== Promo Validation Debug ===")
+            Log.d("PromoRepository", "Promo Code: $promoCode")
+            Log.d("PromoRepository", "Validation Date (Check-in): ${DateUtils.formatDate(validationDate)}")
+            Log.d("PromoRepository", "Promo Start Date: ${DateUtils.formatDate(startDate)}")
+            Log.d("PromoRepository", "Promo End Date: ${DateUtils.formatDate(endDate)}")
+            if (checkOutDate != null) {
+                Log.d("PromoRepository", "Check-out Date: ${DateUtils.formatDate(checkOutDate)}")
+            }
+
+            if (DateUtils.isDateBefore(validationDate, startDate)) {
+                val errorMessage = "Promo belum berlaku untuk tanggal check-in ini. Promo berlaku mulai: ${DateUtils.formatDate(startDate)}"
+                Log.d("PromoRepository", "Validation failed: $errorMessage")
                 return PromoValidationResult(
                     isValid = false,
-                    errorMessage = "Promo belum dimulai"
+                    errorMessage = errorMessage
                 )
             }
 
-            if (currentDate.after(endDate)) {
+            if (DateUtils.isDateAfter(validationDate, endDate)) {
+                val errorMessage = "Promo sudah tidak berlaku untuk tanggal check-in ini. Promo berakhir pada: ${DateUtils.formatDate(endDate)}"
+                Log.d("PromoRepository", "Validation failed: $errorMessage")
                 return PromoValidationResult(
                     isValid = false,
-                    errorMessage = "Promo sudah berakhir"
+                    errorMessage = errorMessage
                 )
+            }
+
+            if (!DateUtils.isDateInRange(startDate, endDate, validationDate)) {
+                val errorMessage = "Promo tidak berlaku untuk tanggal check-in ini. Periode promo: ${DateUtils.formatDate(startDate)} - ${DateUtils.formatDate(endDate)}"
+                Log.d("PromoRepository", "Validation failed: $errorMessage")
+                return PromoValidationResult(
+                    isValid = false,
+                    errorMessage = errorMessage
+                )
+            }
+
+            if (checkOutDate != null) {
+                if (DateUtils.isDateAfter(checkOutDate, endDate)) {
+                    val errorMessage = "Promo tidak berlaku untuk seluruh periode menginap. Promo berakhir pada: ${DateUtils.formatDate(endDate)}"
+                    Log.d("PromoRepository", "Validation failed: $errorMessage")
+                    return PromoValidationResult(
+                        isValid = false,
+                        errorMessage = errorMessage
+                    )
+                }
             }
 
             if (promo.packageRef.isNotEmpty() && !packageRef.isNullOrEmpty()) {
                 if (promo.packageRef != packageRef) {
+                    Log.d("PromoRepository", "Validation failed: Package mismatch")
                     return PromoValidationResult(
                         isValid = false,
                         errorMessage = "Promo tidak berlaku untuk paket ini"
@@ -122,12 +166,14 @@ class PromoRepository @Inject constructor(
             }
 
             if (promo.discountPercentage <= 0 || promo.discountPercentage > 100) {
+                Log.d("PromoRepository", "Validation failed: Invalid discount percentage")
                 return PromoValidationResult(
                     isValid = false,
-                    errorMessage = "Persentase diskon harus antara 1-100%"
+                    errorMessage = "Persentase diskon tidak valid"
                 )
             }
 
+            Log.d("PromoRepository", "Promo validation successful!")
             PromoValidationResult(
                 isValid = true,
                 promo = promo,
@@ -135,9 +181,32 @@ class PromoRepository @Inject constructor(
             )
 
         } catch (e: Exception) {
+            Log.e("PromoRepository", "Error validating promo: ${e.message}", e)
             PromoValidationResult(
                 isValid = false,
                 errorMessage = "Gagal memvalidasi kode promo: ${e.message}"
+            )
+        }
+    }
+
+    /**
+     * Validate promo code using date strings
+     */
+    suspend fun validatePromoCode(
+        promoCode: String,
+        packageRef: String? = null,
+        checkInDateString: String = "",
+        checkOutDateString: String = ""
+    ): PromoValidationResult {
+        return try {
+            val checkInDate = checkInDateString.let { DateUtils.parseDate(it) }
+            val checkOutDate = checkOutDateString.let { DateUtils.parseDate(it) }
+
+            validatePromoCode(promoCode, packageRef, checkInDate, checkOutDate)
+        } catch (e: Exception) {
+            PromoValidationResult(
+                isValid = false,
+                errorMessage = "Error parsing dates: ${e.message}"
             )
         }
     }
@@ -290,7 +359,30 @@ class PromoRepository @Inject constructor(
     }
 
     /**
-     * Get active promos (current date is between start and end date)
+     * Get promos that are active for a specific date range (check-in to check-out)
+     */
+    suspend fun getActivePromosForDateRange(checkInDate: Date, checkOutDate: Date): List<PromoData> {
+        return try {
+            val checkInTimestamp = Timestamp(checkInDate)
+            val checkOutTimestamp = Timestamp(checkOutDate)
+
+            val result = promoCollection
+                .whereLessThanOrEqualTo("startDate", checkOutTimestamp)
+                .whereGreaterThanOrEqualTo("endDate", checkInTimestamp)
+                .orderBy("startDate", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            result.documents.mapNotNull { document ->
+                document.toObject(PromoData::class.java)?.copy(id = document.id)
+            }
+        } catch (e: Exception) {
+            throw Exception("Failed to fetch active promos for date range: ${e.message}")
+        }
+    }
+
+    /**
+     * Get active promos (current date is between start and end date) - kept for backward compatibility
      */
     suspend fun getActivePromos(): List<PromoData> {
         return try {
