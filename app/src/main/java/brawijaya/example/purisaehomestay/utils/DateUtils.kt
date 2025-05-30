@@ -28,8 +28,9 @@ object DateUtils {
         return parseDate(dateString)?.time
     }
 
-    fun formatDate(date: Date): String {
-        return getDateFormat().format(date)
+    fun formatDate(date: Date, pattern: String = "dd/MM/yyyy"): String {
+        val dateFormat = SimpleDateFormat(pattern, Locale("id", "ID"))
+        return dateFormat.format(date)
     }
 
     fun formatDate(year: Int, month: Int, dayOfMonth: Int): String {

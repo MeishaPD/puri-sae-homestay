@@ -38,7 +38,7 @@ import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
-import brawijaya.example.purisaehomestay.ui.screens.order.components.HistoryCard
+import brawijaya.example.purisaehomestay.ui.components.HistoryCard
 import brawijaya.example.purisaehomestay.ui.screens.order.components.PaymentDialog
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
@@ -141,11 +141,12 @@ fun ActivityScreen(
                     PaymentDialog(
                         totalPrice = order.totalPrice,
                         paidAmount = order.paidAmount,
-                        remainingAmout = order.totalPrice * 0.75,
+                        remainingAmount = order.totalPrice * 0.75,
                         onDismiss = { viewModel.setShowPaymentDialog(false) },
                         onUploadClicked = {
                             navController.navigate(Screen.UploadPayment.route)
-                        }
+                        },
+                        discountAmount = uiState.discountAmount
                     )
                 }
             }

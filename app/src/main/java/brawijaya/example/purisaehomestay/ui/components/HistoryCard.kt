@@ -1,4 +1,4 @@
-package brawijaya.example.purisaehomestay.ui.screens.order.components
+package brawijaya.example.purisaehomestay.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement

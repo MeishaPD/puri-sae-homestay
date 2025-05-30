@@ -4,7 +4,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import brawijaya.example.purisaehomestay.data.model.NewsData
+import brawijaya.example.purisaehomestay.data.model.PromoData
 import brawijaya.example.purisaehomestay.data.repository.NewsRepository
+import brawijaya.example.purisaehomestay.data.repository.PromoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,20 +17,24 @@ import javax.inject.Inject
 
 data class HomeUiState(
     val news: List<NewsData> = emptyList(),
+    val promo: List<PromoData> = emptyList(),
     val isLoading: Boolean = true,
     val errorMessage: String? = null
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val newsRepository: NewsRepository
+    private val newsRepository: NewsRepository,
+    private val promoRepository: PromoRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState(isLoading = true))
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
+        fetchPromo()
         fetchNews()
+        observePromoList()
         observeNewsList()
     }
 
@@ -44,6 +50,37 @@ class HomeViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         errorMessage = e.message
+                    )
+                }
+            }
+        }
+    }
+
+    private fun fetchPromo() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            try {
+                promoRepository.fetchAllPromo()
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = e.message
+                    )
+                }
+            }
+        }
+    }
+
+    private fun observePromoList() {
+        viewModelScope.launch {
+            promoRepository.promo.collect { promoList ->
+                val latestPromo = promoList.sortedByDescending { it.startDate.seconds }
+                _uiState.update {
+                    it.copy(
+                        promo = latestPromo,
+                        isLoading = false,
+                        errorMessage = null
                     )
                 }
             }

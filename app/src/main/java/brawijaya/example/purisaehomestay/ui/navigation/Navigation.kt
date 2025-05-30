@@ -22,6 +22,7 @@ import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.ManagePackageScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepayment.ManagePaymentScreen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.monthlyreport.MonthlyReportScreen
+import brawijaya.example.purisaehomestay.ui.screens.promo.EditPromoScreen
 import brawijaya.example.purisaehomestay.ui.screens.promo.PromoScreen
 import brawijaya.example.purisaehomestay.ui.screens.upload.UploadScreen
 import kotlin.text.isNullOrEmpty
@@ -54,11 +55,21 @@ sealed class Screen(val route: String) {
     }
 
     object EditNews : Screen("edit_news?newsId={newsId}") {
-        fun createRoute(newsId: String?): String {
+        fun createRoute(newsId: String? = null): String {
             return if (!newsId.isNullOrEmpty()) {
                 "edit_news?newsId=$newsId"
             } else {
                 "edit_news"
+            }
+        }
+    }
+
+    object EditPromo : Screen("edit_promo?promoId={promoId}") {
+        fun createRoute(promoId: String? = null): String {
+            return if (!promoId.isNullOrEmpty()) {
+                "edit_promo?promoId=$promoId"
+            } else {
+                "edit_promo"
             }
         }
     }
@@ -143,6 +154,22 @@ fun AppNavigation(navController: NavHostController) {
             EditNewsScreen(
                 navController = navController,
                 newsId = newsId
+            )
+        }
+        composable(
+            route = Screen.EditPromo.route,
+            arguments = listOf(
+                navArgument("promoId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val promoId = backStackEntry.arguments?.getString("promoId")
+            EditPromoScreen(
+                navController = navController,
+                promoId = promoId
             )
         }
 

@@ -6,8 +6,11 @@ import androidx.lifecycle.viewModelScope
 import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.data.model.PaymentStatusStage
+import brawijaya.example.purisaehomestay.data.model.PromoData
+import brawijaya.example.purisaehomestay.data.repository.CreateOrderResult
 import brawijaya.example.purisaehomestay.data.repository.OrderRepository
 import brawijaya.example.purisaehomestay.data.repository.PackageRepository
+import brawijaya.example.purisaehomestay.utils.DateUtils
 import com.google.firebase.Timestamp
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,8 +19,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Locale
 import javax.inject.Inject
 
 data class OrderUiState(
@@ -32,7 +33,14 @@ data class OrderUiState(
     val orderList: List<OrderData> = emptyList(),
     val availablePackages: List<PackageData> = emptyList(),
     val selectedPackageData: PackageData? = null,
-    val currentOrderId: String = ""
+    val currentOrderId: String = "",
+    val promoCode: String = "",
+    val isValidatingPromo: Boolean = false,
+    val appliedPromo: PromoData? = null,
+    val originalPrice: Double = 0.0,
+    val discountAmount: Double = 0.0,
+    val finalPrice: Double = 0.0,
+    val promoValidationMessage: String? = null
 )
 
 @HiltViewModel
@@ -109,13 +117,25 @@ class OrderViewModel @Inject constructor(
             return
         }
 
+        if (!DateUtils.isValidCheckOutDate(checkInDate, checkOutDate)) {
+            _uiState.update {
+                it.copy(
+                    availablePackages = emptyList(),
+                    hasSelectedDateRange = false,
+                    errorMessage = "Tanggal check-out harus setelah tanggal check-in"
+                )
+            }
+            return
+        }
+
         viewModelScope.launch {
             clearMessages()
             _uiState.update { it.copy(isLoading = true, hasSelectedDateRange = true) }
             try {
-                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                val checkIn = dateFormat.parse(checkInDate) ?: throw Exception("Invalid check-in date format")
-                val checkOut = dateFormat.parse(checkOutDate) ?: throw Exception("Invalid check-out date format")
+                val checkIn = DateUtils.parseDate(checkInDate)
+                    ?: throw Exception("Format tanggal check-in tidak valid")
+                val checkOut = DateUtils.parseDate(checkOutDate)
+                    ?: throw Exception("Format tanggal check-out tidak valid")
 
                 val availablePackages = orderRepository.getAvailablePackages(checkIn, checkOut)
                 _uiState.update {
@@ -139,6 +159,141 @@ class OrderViewModel @Inject constructor(
         }
     }
 
+    fun calculatePriceWithPromo(
+        checkInDate: String,
+        checkOutDate: String,
+        selectedPackageId: Int
+    ) {
+        viewModelScope.launch {
+            try {
+                DateUtils.parseDate(checkInDate)
+                    ?: throw Exception("Invalid check-in date format")
+                DateUtils.parseDate(checkOutDate)
+                    ?: throw Exception("Invalid check-out date format")
+
+                val selectedPackage = _uiState.value.packageList.find { it.id == selectedPackageId }
+                    ?: throw Exception("Selected package not found")
+
+                val numberOfNights = DateUtils.calculateNights(checkInDate, checkOutDate)
+                val pricePerNight = selectedPackage.price_weekday
+                val originalPrice = pricePerNight * numberOfNights
+
+                _uiState.update {
+                    it.copy(
+                        originalPrice = originalPrice,
+                        finalPrice = originalPrice
+                    )
+                }
+
+                val currentState = _uiState.value
+                if (currentState.appliedPromo != null) {
+                    applyPromoToPrice(originalPrice, currentState.appliedPromo)
+                }
+
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(errorMessage = "Gagal menghitung harga: ${e.message}")
+                }
+            }
+        }
+    }
+
+    fun validatePromoCode(promoCode: String, selectedPackageId: Int?) {
+        if (promoCode.isEmpty()) {
+            clearPromo()
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isValidatingPromo = true,
+                    promoValidationMessage = null
+                )
+            }
+
+            try {
+                val packageRef = selectedPackageId?.let { "package/$it" }
+                val originalPrice = _uiState.value.originalPrice
+
+                val promoResult = orderRepository.validatePromoAndCalculatePrice(
+                    promoCode = promoCode,
+                    originalPrice = originalPrice,
+                    packageRef = packageRef
+                )
+
+                if (promoResult.isValid && promoResult.promo != null) {
+                    _uiState.update {
+                        it.copy(
+                            isValidatingPromo = false,
+                            appliedPromo = promoResult.promo,
+                            discountAmount = promoResult.discountAmount,
+                            finalPrice = promoResult.finalPrice,
+                            promoValidationMessage = "Promo berhasil diterapkan!",
+                            promoCode = promoCode
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isValidatingPromo = false,
+                            appliedPromo = null,
+                            discountAmount = 0.0,
+                            finalPrice = originalPrice,
+                            promoValidationMessage = promoResult.errorMessage,
+                            promoCode = ""
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isValidatingPromo = false,
+                        appliedPromo = null,
+                        discountAmount = 0.0,
+                        finalPrice = _uiState.value.originalPrice,
+                        promoValidationMessage = "Gagal memvalidasi promo: ${e.message}",
+                        promoCode = ""
+                    )
+                }
+            }
+        }
+    }
+
+    private fun applyPromoToPrice(originalPrice: Double, promo: PromoData) {
+        viewModelScope.launch {
+            try {
+                val promoResult = orderRepository.validatePromoAndCalculatePrice(
+                    promoCode = promo.promoCode,
+                    originalPrice = originalPrice
+                )
+
+                if (promoResult.isValid) {
+                    _uiState.update {
+                        it.copy(
+                            discountAmount = promoResult.discountAmount,
+                            finalPrice = promoResult.finalPrice
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("OrderViewModel", "Error applying promo: ${e.message}")
+            }
+        }
+    }
+
+    fun clearPromo() {
+        _uiState.update {
+            it.copy(
+                appliedPromo = null,
+                discountAmount = 0.0,
+                finalPrice = it.originalPrice,
+                promoValidationMessage = null,
+                promoCode = ""
+            )
+        }
+    }
+
     fun createOrder(
         checkInDate: String,
         checkOutDate: String,
@@ -153,19 +308,32 @@ class OrderViewModel @Inject constructor(
             try {
                 _uiState.update { it.copy(isCreatingOrder = true) }
 
-                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                val checkIn = dateFormat.parse(checkInDate) ?: throw Exception("Invalid check-in date")
-                val checkOut = dateFormat.parse(checkOutDate) ?: throw Exception("Invalid check-out date")
-                val guestQty = guestCount.toIntOrNull() ?: throw Exception("Invalid guest count")
+                val checkIn = DateUtils.parseDate(checkInDate)
+                    ?: throw Exception("Invalid check-in date format")
+                val checkOut = DateUtils.parseDate(checkOutDate)
+                    ?: throw Exception("Invalid check-out date format")
+                val guestQty = guestCount.toIntOrNull()
+                    ?: throw Exception("Invalid guest count")
+
+                if (!DateUtils.isValidCheckOutDate(checkInDate, checkOutDate)) {
+                    throw Exception("Check-out date must be after check-in date")
+                }
 
                 val selectedPackage = _uiState.value.packageList.find { it.id == selectedPackageId }
                     ?: throw Exception("Selected package not found")
 
                 val packageRef = orderRepository.createPackageRef(selectedPackage.id.toString())
 
-                val numberOfNights = ((checkOut.time - checkIn.time) / (1000 * 60 * 60 * 24)).toInt()
+                val numberOfNights = DateUtils.calculateNights(checkInDate, checkOutDate)
                 val pricePerNight = selectedPackage.price_weekday
-                val totalPrice = pricePerNight * numberOfNights
+
+                val currentState = _uiState.value
+
+                val finalPrice = if (currentState.appliedPromo != null) {
+                    currentState.finalPrice
+                } else {
+                    pricePerNight * numberOfNights
+                }
 
                 val paymentStage = if (paymentType == "Pembayaran Lunas") PaymentStatusStage.LUNAS else PaymentStatusStage.DP
 
@@ -184,22 +352,36 @@ class OrderViewModel @Inject constructor(
                     paymentType = paymentType,
                     paymentUrls = emptyList(),
                     pricePerNight = pricePerNight,
-                    totalPrice = totalPrice,
+                    totalPrice = finalPrice,
                     paymentStatus = paymentStage,
+                    promoRef = currentState.appliedPromo?.id ?: "",
                     userRef = userRef ?: "",
                     createdAt = Timestamp.now()
                 )
 
-                val orderId = orderRepository.createOrder(orderData)
-                Log.d("ViewModel", "CurrentOrderId: $orderId")
-
-                _uiState.update {
-                    it.copy(
-                        currentOrderId = orderId,
-                        isCreatingOrder = false,
-                        successMessage = "Order created successfully",
-                        showPaymentDialog = true
+                val result = if (currentState.appliedPromo != null) {
+                    orderRepository.createOrderWithPromo(orderData, currentState.promoCode)
+                } else {
+                    val orderId = orderRepository.createOrder(orderData)
+                    CreateOrderResult(
+                        success = true,
+                        orderId = orderId,
+                        errorMessage = null
                     )
+                }
+
+                if (result.success && result.orderId != null) {
+                    Log.d("ViewModel", "CurrentOrderId: ${result.orderId}")
+                    _uiState.update {
+                        it.copy(
+                            currentOrderId = result.orderId,
+                            isCreatingOrder = false,
+                            successMessage = "Order created successfully",
+                            showPaymentDialog = true
+                        )
+                    }
+                } else {
+                    throw Exception(result.errorMessage ?: "Failed to create order")
                 }
 
             } catch (e: Exception) {
@@ -363,7 +545,6 @@ class OrderViewModel @Inject constructor(
         }
     }
 
-
     fun setShowPaymentDialog(show: Boolean) {
         _uiState.update { it.copy(showPaymentDialog = show) }
     }
@@ -373,12 +554,15 @@ class OrderViewModel @Inject constructor(
         _uiState.update { it.copy(currentOrderId = orderId) }
     }
 
-
     fun dismissPaymentDialog() {
         _uiState.update { it.copy(showPaymentDialog = false) }
     }
 
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+    }
+
+    fun clearPromoValidationMessage() {
+        _uiState.update { it.copy(promoValidationMessage = null) }
     }
 }
