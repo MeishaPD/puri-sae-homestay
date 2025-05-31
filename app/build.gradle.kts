@@ -93,6 +93,7 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.logging.interceptor)
     implementation(libs.androidx.work.runtime.ktx.v290)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.okhttp)
     implementation(libs.gson)
     implementation(libs.firebase.auth)
