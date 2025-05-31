@@ -218,7 +218,6 @@ fun AppNavigation(navController: NavHostController) {
             UploadScreen(
                 navController = navController,
                 orderViewModel = orderViewModel,
-                orderId = orderId,
                 source = source,
                 onImageUploaded = { imageUrl ->
                     when (source) {
@@ -234,7 +233,7 @@ fun AppNavigation(navController: NavHostController) {
                                 orderViewModel.handleDPPaymentUpload(imageUrl)
                             }
                             navController.previousBackStackEntry?.savedStateHandle?.set("refresh_data", true)
-                            navController.popBackStack()
+                            navController.navigate(Screen.Profile.route)
                         }
                     }
                 }

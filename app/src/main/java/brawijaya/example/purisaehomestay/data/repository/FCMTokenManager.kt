@@ -1,6 +1,7 @@
 package brawijaya.example.purisaehomestay.data.repository
 
 import android.util.Log
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.tasks.await
@@ -38,7 +39,7 @@ class FCMTokenManager(
                 "userId" to userId,
                 "token" to token,
                 "platform" to "android",
-                "createdAt" to com.google.firebase.Timestamp.now()
+                "createdAt" to Timestamp.now()
             )
 
             // Check if token already exists for this user

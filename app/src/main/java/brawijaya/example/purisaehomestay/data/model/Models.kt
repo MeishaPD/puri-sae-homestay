@@ -33,24 +33,44 @@ data class PackageData(
     )
 }
 
-data class NotificationData(
-    val id: String = "",
-    val type: NotificationType = NotificationType.NEWS,
-    val title: String = "",
-    val description: String = "",
-    val imageUrl: String? = null,
-    val createdAt: Timestamp = Timestamp.now(),
-    val referenceId: String = "",
-    val isActive: Boolean = true
+data class FCMRequest(
+    val to: String? = null,
+    val registration_ids: List<String>? = null,
+    val notification: FCMNotification,
+    val data: Map<String, String>? = null,
+    val priority: String = "high"
 )
 
-data class UserNotification(
-    val id: String = "",
-    val userId: String = "",
-    val notificationId: String = "",
-    val isRead: Boolean = false,
-    val readAt: Timestamp? = null,
-    val createdAt: Timestamp = Timestamp.now()
+data class FCMNotification(
+    val title: String,
+    val body: String,
+    val icon: String = "ic_notification",
+    val sound: String = "default"
+)
+
+data class FCMResponse(
+    val multicast_id: Long,
+    val success: Int,
+    val failure: Int,
+    val canonical_ids: Int,
+    val results: List<FCMResult>
+)
+
+data class FCMResult(
+    val message_id: String?,
+    val registration_id: String?,
+    val error: String?
+)
+
+enum class NotificationType {
+    PROMO, NEWS, BOOKING_CREATED, PAYMENT_CONFIRMED, PAYMENT_REJECTED, PAYMENT_RECEIVED
+}
+
+data class NotificationData(
+    val type: NotificationType,
+    val title: String,
+    val message: String,
+    val extraData: Map<String, String> = emptyMap()
 )
 
 data class PromoData(
@@ -82,10 +102,6 @@ data class PromoData(
         packageRef = ""
 
     )
-}
-
-enum class NotificationType {
-    PROMO, NEWS
 }
 
 enum class PaymentStatusStage {

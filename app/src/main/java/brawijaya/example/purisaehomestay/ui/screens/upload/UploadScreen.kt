@@ -55,7 +55,6 @@ fun UploadScreen(
     navController: NavController,
     onImageUploaded: (String) -> Unit = {},
     cloudinaryViewModel: CloudinaryViewModel = hiltViewModel(),
-    orderId: String?,
     orderViewModel: OrderViewModel,
     source: String = "order"
 ) {

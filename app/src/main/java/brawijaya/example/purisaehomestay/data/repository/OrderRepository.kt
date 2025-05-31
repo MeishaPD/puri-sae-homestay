@@ -78,7 +78,7 @@ class OrderRepository @Inject constructor(
                 .mapNotNull { document ->
                     try {
                         val order = document.toObject<OrderData>()
-                        if (order != null && order.check_out > checkInTimestamp) {
+                        if (order != null && order.check_out > checkInTimestamp && order.paymentStatus != PaymentStatusStage.REJECTED) {
                             order
                         } else {
                             null
