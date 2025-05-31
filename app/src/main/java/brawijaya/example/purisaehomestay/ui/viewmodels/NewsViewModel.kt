@@ -31,7 +31,6 @@ class NewsViewModel @Inject constructor(
     val uiState: StateFlow<NewsUiState> = _uiState.asStateFlow()
 
     init {
-        fetchAllNews()
         observeNewsList()
     }
 
@@ -93,7 +92,7 @@ class NewsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isCreating = true) }
             try {
-                val newsId = newsRepository.createNews(news)
+                newsRepository.createNews(news)
                 _uiState.update {
                     it.copy(
                         isCreating = false,

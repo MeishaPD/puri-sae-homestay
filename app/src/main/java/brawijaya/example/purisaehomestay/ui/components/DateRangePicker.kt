@@ -32,13 +32,14 @@ import java.util.Calendar
 
 @Composable
 fun DateRangePicker(
-    checkInDate: String,
-    onCheckInDateSelected: (String) -> Unit,
-    checkOutDate: String,
-    onCheckOutDateSelected: (String) -> Unit,
+    startDate: String,
+    onStartDateSelected: (String) -> Unit,
+    endDate: String,
+    onEndDateSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
-    minCheckInDate: Long? = null,
-    checkOutError: String? = null
+    minStartDate: Long? = null,
+    errorMessage: String? = null,
+    isEditPromo: Boolean? = false
 ) {
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
@@ -47,14 +48,14 @@ fun DateRangePicker(
         context,
         { _, year, month, dayOfMonth ->
             val formattedDate = DateUtils.formatDate(year, month, dayOfMonth)
-            onCheckInDateSelected(formattedDate)
+            onStartDateSelected(formattedDate)
         },
         calendar.get(Calendar.YEAR),
         calendar.get(Calendar.MONTH),
         calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    minCheckInDate?.let {
+    minStartDate?.let {
         checkInDatePickerDialog.datePicker.minDate = it
     }
 
@@ -63,25 +64,25 @@ fun DateRangePicker(
         { _, year, month, dayOfMonth ->
             val formattedDate = DateUtils.formatDate(year, month, dayOfMonth)
 
-            if (checkInDate.isNotEmpty()) {
-                if (!DateUtils.isValidCheckOutDate(checkInDate, formattedDate)) {
-                    onCheckOutDateSelected("")
+            if (startDate.isNotEmpty()) {
+                if (!DateUtils.isValidCheckOutDate(startDate, formattedDate)) {
+                    onEndDateSelected("")
                     return@DatePickerDialog
                 }
             }
 
-            onCheckOutDateSelected(formattedDate)
+            onEndDateSelected(formattedDate)
         },
         calendar.get(Calendar.YEAR),
         calendar.get(Calendar.MONTH),
         calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    val minCheckOutDate = DateUtils.getMillisFromDate(checkInDate)
-    minCheckOutDate?.let {
+    val minEndDate = DateUtils.getMillisFromDate(startDate)
+    minEndDate?.let {
         checkOutDatePickerDialog.datePicker.minDate = it + 24 * 60 * 60 * 1000
     } ?: run {
-        minCheckInDate?.let {
+        minStartDate?.let {
             checkOutDatePickerDialog.datePicker.minDate = it
         }
     }
@@ -93,7 +94,7 @@ fun DateRangePicker(
                 .clip(RoundedCornerShape(8.dp))
                 .border(
                     width = 1.dp,
-                    color = if (checkOutError != null) Color.Red else PrimaryGold.copy(alpha = 0.5f),
+                    color = if (errorMessage != null) Color.Red else PrimaryGold.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(8.dp)
                 )
                 .background(MaterialTheme.colorScheme.surface)
@@ -112,7 +113,7 @@ fun DateRangePicker(
                         .clickable { checkInDatePickerDialog.show() }
                 ) {
                     Text(
-                        text = "Check In",
+                        text = if (isEditPromo == true) "Tanggal Mulai" else "Check In",
                         modifier = Modifier.padding(start = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.LightGray
@@ -120,8 +121,8 @@ fun DateRangePicker(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         modifier = Modifier.padding(start = 4.dp),
-                        text = if (checkInDate.isEmpty()) "Pilih tanggal" else checkInDate,
-                        color = if (checkInDate.isEmpty()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        text = if (startDate.isEmpty()) "Pilih tanggal" else startDate,
+                        color = if (startDate.isEmpty()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         else MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -139,7 +140,7 @@ fun DateRangePicker(
                         .clickable { checkOutDatePickerDialog.show() }
                 ) {
                     Text(
-                        text = "Check Out",
+                        text = if (isEditPromo == true) "Tanggal Selesai" else "Check Out",
                         modifier = Modifier.padding(start = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.LightGray
@@ -147,8 +148,8 @@ fun DateRangePicker(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         modifier = Modifier.padding(start = 4.dp),
-                        text = if (checkOutDate.isEmpty()) "Opsional" else checkOutDate,
-                        color = if (checkOutDate.isEmpty()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        text = if (endDate.isEmpty()) "" else endDate,
+                        color = if (endDate.isEmpty()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         else MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -160,7 +161,7 @@ fun DateRangePicker(
                     modifier = Modifier
                         .padding(end = 8.dp)
                         .clickable {
-                            if (checkInDate.isEmpty()) {
+                            if (startDate.isEmpty()) {
                                 checkInDatePickerDialog.show()
                             } else {
                                 checkOutDatePickerDialog.show()
@@ -170,10 +171,10 @@ fun DateRangePicker(
             }
         }
 
-        if (checkOutError != null) {
+        if (errorMessage != null) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = checkOutError,
+                text = errorMessage,
                 color = Color.Red,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.fillMaxWidth(),

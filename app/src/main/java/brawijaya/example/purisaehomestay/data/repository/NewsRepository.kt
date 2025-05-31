@@ -1,6 +1,7 @@
 package brawijaya.example.purisaehomestay.data.repository
 
 import brawijaya.example.purisaehomestay.data.model.NewsData
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.flow.Flow
@@ -12,7 +13,7 @@ import javax.inject.Singleton
 
 @Singleton
 class NewsRepository @Inject constructor(
-    private val firestore: FirebaseFirestore
+    firestore: FirebaseFirestore
 ) {
     private val _news = MutableStateFlow<List<NewsData>>(emptyList())
     val news: Flow<List<NewsData>> = _news.asStateFlow()
@@ -48,8 +49,8 @@ class NewsRepository @Inject constructor(
             val docRef = newsCollection.document()
             val newsWithId = news.copy(
                 id = docRef.id,
-                createdAt = com.google.firebase.Timestamp.now(),
-                updatedAt = com.google.firebase.Timestamp.now()
+                createdAt = Timestamp.now(),
+                updatedAt = Timestamp.now()
             )
             docRef.set(newsWithId).await()
 
@@ -65,7 +66,7 @@ class NewsRepository @Inject constructor(
 
     suspend fun updateNews(news: NewsData) {
         try {
-            val updatedNews = news.copy(updatedAt = com.google.firebase.Timestamp.now())
+            val updatedNews = news.copy(updatedAt = Timestamp.now())
             newsCollection.document(news.id).set(updatedNews).await()
 
             val currentNews = _news.value.toMutableList()

@@ -2,8 +2,10 @@ package brawijaya.example.purisaehomestay.ui.screens.order
 
 import android.util.Log
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Discount
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -58,10 +61,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.PackageData
+import brawijaya.example.purisaehomestay.data.model.PromoData
 import brawijaya.example.purisaehomestay.ui.components.BottomNavigation
 import brawijaya.example.purisaehomestay.ui.components.DateRangePicker
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
-import brawijaya.example.purisaehomestay.ui.screens.order.components.PackageCard
+import brawijaya.example.purisaehomestay.ui.components.PackageCard
 import brawijaya.example.purisaehomestay.ui.screens.order.components.PaymentDialog
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
@@ -70,6 +74,8 @@ import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileUiState
 import brawijaya.example.purisaehomestay.ui.viewmodels.ProfileViewModel
 import brawijaya.example.purisaehomestay.utils.DateUtils
 import kotlinx.coroutines.delay
+import java.text.NumberFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +91,7 @@ fun OrderScreen(
     var checkInDate by remember { mutableStateOf("") }
     var checkOutDate by remember { mutableStateOf("") }
     var guestCount by remember { mutableStateOf("") }
+    var promoCode by remember { mutableStateOf("") }
     var selectedPackageId by remember { mutableIntStateOf(1) }
     var checkOutError by remember { mutableStateOf<String?>(null) }
 
@@ -98,16 +105,32 @@ fun OrderScreen(
         LocalLifecycleOwner.current
     ) { imageUrl ->
         imageUrl?.let {
-            viewModel.updatePaymentUrl(it)
+            Log.d("OrderScreen", "Received uploaded image URL: $it")
+
+            viewModel.handlePaymentProofUpload(it)
+
+            savedStateHandle.remove<String>("uploaded_image_url")
         }
     }
 
     val userName = profileViewModel.getUserName()
     val userPhone = profileViewModel.getUserPhoneNumber()
 
-    LaunchedEffect(checkInDate, checkOutDate) {
+    LaunchedEffect(checkInDate, checkOutDate, selectedPackageId, promoCode) {
         if (checkInDate.isNotEmpty() && checkOutDate.isNotEmpty() && checkOutError == null) {
             viewModel.getAvailablePackages(checkInDate, checkOutDate)
+            if (selectedPackageId > 0) {
+                viewModel.calculatePriceWithPromo(checkInDate, checkOutDate, selectedPackageId)
+            }
+        }
+    }
+
+    LaunchedEffect(promoCode, selectedPackageId, uiState.originalPrice) {
+        if (promoCode.isNotEmpty() && uiState.originalPrice > 0) {
+            delay(500)
+            viewModel.validatePromoCode(promoCode, selectedPackageId)
+        } else if (promoCode.isEmpty()) {
+            viewModel.clearPromo()
         }
     }
 
@@ -115,6 +138,19 @@ fun OrderScreen(
         if (uiState.errorMessage != null || uiState.successMessage != null) {
             delay(3000)
             viewModel.clearMessages()
+        }
+    }
+
+    LaunchedEffect(uiState.promoValidationMessage) {
+        if (uiState.promoValidationMessage != null) {
+            delay(3000)
+            viewModel.clearPromoValidationMessage()
+        }
+    }
+
+    LaunchedEffect(uiState.promoCode) {
+        if (promoCode != uiState.promoCode) {
+            promoCode = uiState.promoCode
         }
     }
 
@@ -145,6 +181,9 @@ fun OrderScreen(
     val onPackageSelected = { id: Int ->
         selectedPackageId = id
         viewModel.getPaketById(id)
+        if (checkInDate.isNotEmpty() && checkOutDate.isNotEmpty() && checkOutError == null) {
+            viewModel.calculatePriceWithPromo(checkInDate, checkOutDate, id)
+        }
     }
 
 
@@ -257,6 +296,8 @@ fun OrderScreen(
                     onCheckOutDateSelected = updateCheckOutDate,
                     guestCount = guestCount,
                     onGuestCountChange = { guestCount = it },
+                    promoCode = promoCode,
+                    onPromoCodeChange = { promoCode = it },
                     selectedPackage = selectedPackageId,
                     onPackageSelected = onPackageSelected,
                     checkOutError = checkOutError,
@@ -280,28 +321,35 @@ fun OrderScreen(
                         )
                     },
                     selectedPaymentOption = selectedPaymentOption,
-                    onSelectedPaymentOptionChange = { selectedPaymentOption = it }
+                    onSelectedPaymentOptionChange = { selectedPaymentOption = it },
+                    originalPrice = uiState.originalPrice,
+                    finalPrice = uiState.finalPrice,
+                    discountAmount = uiState.discountAmount,
+                    appliedPromo = uiState.appliedPromo,
+                    isValidatingPromo = uiState.isValidatingPromo,
+                    promoValidationMessage = uiState.promoValidationMessage
                 )
 
                 if (uiState.showPaymentDialog) {
-                    val selectedPaket = uiState.packageList.find { it.id == selectedPackageId }
-                    val nights = if (checkInDate.isNotEmpty() && checkOutDate.isNotEmpty()) {
+                    if (checkInDate.isNotEmpty() && checkOutDate.isNotEmpty()) {
                         DateUtils.calculateNights(checkInDate, checkOutDate)
                     } else 1
 
-                    val totalPrice = selectedPaket?.let { paket ->
-                        paket.price_weekday * nights
-                    } ?: 0.0
-
+                    val totalPrice = uiState.finalPrice
                     val remainingAmount = totalPrice - 0
+
+                    Log.d("Pending order data", uiState.pendingOrderData.toString())
 
                     PaymentDialog(
                         totalPrice = totalPrice,
                         paidAmount = 0.0,
-                        remainingAmout = remainingAmount,
-                        onDismiss = { viewModel.dismissPaymentDialog() },
+                        discountAmount = uiState.discountAmount,
+                        remainingAmount = remainingAmount,
+                        onDismiss = {
+                            viewModel.dismissPaymentDialog()
+                        },
                         onUploadClicked = {
-                            navController.navigate(Screen.UploadPayment.route)
+                            navController.navigate(Screen.UploadPayment.createRoute())
                         }
                     )
                 }
@@ -331,7 +379,15 @@ fun OrderScreenContent(
     isCreatingOrder: Boolean = false,
     onCreateOrder: (String) -> Unit = {},
     selectedPaymentOption: (String),
-    onSelectedPaymentOptionChange: (String) -> Unit
+    onSelectedPaymentOptionChange: (String) -> Unit,
+    promoCode: String,
+    onPromoCodeChange: (String) -> Unit,
+    originalPrice: Double = 0.0,
+    finalPrice: Double = 0.0,
+    discountAmount: Double = 0.0,
+    appliedPromo: PromoData? = null,
+    isValidatingPromo: Boolean = false,
+    promoValidationMessage: String? = null
 ) {
     var dropdownExpanded by remember { mutableStateOf(false) }
 
@@ -345,13 +401,13 @@ fun OrderScreenContent(
                 .padding(16.dp)
         ) {
             DateRangePicker(
-                checkInDate = checkInDate,
-                onCheckInDateSelected = onCheckInDateSelected,
-                checkOutDate = checkOutDate,
-                onCheckOutDateSelected = onCheckOutDateSelected,
+                startDate = checkInDate,
+                onStartDateSelected = onCheckInDateSelected,
+                endDate = checkOutDate,
+                onEndDateSelected = onCheckOutDateSelected,
                 modifier = Modifier.fillMaxWidth(),
-                minCheckInDate = System.currentTimeMillis() - 1000,
-                checkOutError = checkOutError
+                minStartDate = System.currentTimeMillis() - 1000,
+                errorMessage = checkOutError
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -499,7 +555,7 @@ fun OrderScreenContent(
                         .padding(bottom = 8.dp)
                 )
 
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
@@ -509,7 +565,6 @@ fun OrderScreenContent(
                         onValueChange = { },
                         readOnly = true,
                         enabled = false,
-                        label = { Text("Jenis Pembayaran", style = MaterialTheme.typography.labelSmall) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Outlined.CreditCard,
@@ -517,6 +572,7 @@ fun OrderScreenContent(
                                 tint = PrimaryGold
                             )
                         },
+                        label = { Text("Jenis Pembayaran") },
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
@@ -541,7 +597,7 @@ fun OrderScreenContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { dropdownExpanded = true }
-                            .padding(bottom = 16.dp)
+                            .padding(bottom = 8.dp)
                     )
 
                     DropdownMenu(
@@ -549,7 +605,6 @@ fun OrderScreenContent(
                         onDismissRequest = { dropdownExpanded = false },
                         modifier = Modifier
                             .fillMaxWidth(0.9f)
-                            .align(Alignment.TopCenter)
                     ) {
                         DropdownMenuItem(
                             text = {
@@ -570,6 +625,149 @@ fun OrderScreenContent(
                             }
                         )
                     }
+
+                    OutlinedTextField(
+                        value = promoCode,
+                        onValueChange = onPromoCodeChange,
+                        label = { Text("Kode Promo (Opsional)") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Discount,
+                                contentDescription = "Referral Code Icon",
+                                tint = PrimaryGold
+                            )
+                        },
+                        trailingIcon = {
+                            if (isValidatingPromo) {
+                                CircularProgressIndicator(
+                                    color = PrimaryGold,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
+                            focusedBorderColor = PrimaryGold,
+                            unfocusedLabelColor = Color.LightGray,
+                            focusedLabelColor = Color.Black,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                    )
+                }
+
+                promoValidationMessage?.let { message ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (appliedPromo != null)
+                                Color.Green.copy(alpha = 0.1f)
+                            else
+                                Color.Red.copy(alpha = 0.1f)
+                        )
+                    ) {
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (appliedPromo != null) Color.Green else Color.Red,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+
+                if (appliedPromo != null && originalPrice > 0) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = PrimaryGold.copy(alpha = 0.1f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Rincian Harga",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Harga Asli:",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = "Rp ${
+                                        NumberFormat.getNumberInstance(Locale("id", "ID"))
+                                            .format(originalPrice)
+                                    }",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Diskon (${appliedPromo.title}):",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Green
+                                )
+                                Text(
+                                    text = "- Rp ${
+                                        NumberFormat.getNumberInstance(
+                                            Locale(
+                                                "id",
+                                                "ID"
+                                            )
+                                        ).format(discountAmount)
+                                    }",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Green
+                                )
+                            }
+
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                thickness = 1.dp,
+                                color = Color.Gray
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Total Bayar:",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Rp ${
+                                        NumberFormat.getNumberInstance(Locale("id", "ID"))
+                                            .format(finalPrice)
+                                    }",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryGold
+                                )
+                            }
+                        }
+                    }
                 }
 
                 Button(
@@ -581,20 +779,22 @@ fun OrderScreenContent(
                         if (profileState.isAdmin) {
                             if (guestName.isNotBlank() && guestPhone.isNotBlank() &&
                                 guestCount.isNotBlank() && checkInDate.isNotBlank() &&
-                                checkOutDate.isNotBlank() && selectedPaymentOption != "Jenis Pembayaran") {
+                                checkOutDate.isNotBlank() && selectedPaymentOption != "Jenis Pembayaran"
+                            ) {
                                 Log.d("DAMM", "TESTING")
                                 onCreateOrder(selectedPaymentOption)
                             }
                         } else {
                             if (guestCount.isNotBlank() && checkInDate.isNotBlank() &&
-                                checkOutDate.isNotBlank() && selectedPaymentOption != "Jenis Pembayaran") {
+                                checkOutDate.isNotBlank() && selectedPaymentOption != "Jenis Pembayaran"
+                            ) {
                                 onCreateOrder(selectedPaymentOption)
                             }
                         }
                     }
                 ) {
                     Text(
-                        if (isCreatingOrder) "Memproses..." else "Pesan Sekarang",
+                        if (isCreatingOrder) "Memproses Pemesanan" else "Pesan Sekarang",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp

@@ -57,7 +57,7 @@ import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.OrderData
 import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
-import brawijaya.example.purisaehomestay.ui.screens.order.components.HistoryCard
+import brawijaya.example.purisaehomestay.ui.components.HistoryCard
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel

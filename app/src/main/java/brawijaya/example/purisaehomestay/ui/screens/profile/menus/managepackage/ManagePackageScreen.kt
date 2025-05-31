@@ -43,7 +43,7 @@ import androidx.navigation.NavController
 import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.components.EmptyPackageList
-import brawijaya.example.purisaehomestay.ui.screens.order.components.PackageCard
+import brawijaya.example.purisaehomestay.ui.components.PackageCard
 import brawijaya.example.purisaehomestay.ui.viewmodels.PackageUiState
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold

@@ -1,8 +1,6 @@
 package brawijaya.example.purisaehomestay.ui.screens.profile.menus.managenews
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,13 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,11 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,7 +76,6 @@ fun EditNewsScreen(
     val isLoading = uiState.isLoading
     val errorMessage = uiState.errorMessage
     val isUploadingImage = cldUiState.isUploading
-    val cloudinaryImageUrl = cldUiState.imageUrl
 
     LaunchedEffect(newsId) {
         if (!newsId.isNullOrEmpty()) {
@@ -102,8 +93,6 @@ fun EditNewsScreen(
     }
 
     var description by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf("") }
-    var imageResId by remember { mutableStateOf<List<Int>>(emptyList()) }
 
     LaunchedEffect(news) {
         news?.let {
@@ -334,47 +323,5 @@ fun EditNewsScreen(
                 navController.popBackStack()
             }
         )
-    }
-}
-
-@Composable
-fun PhotoItem(
-    imageResId: Int?,
-    onDeleteClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(120.dp)
-            .clip(RoundedCornerShape(8.dp))
-    ) {
-        Image(
-            painter = painterResource(id = imageResId!!),
-            contentDescription = "News Image",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(4.dp)
-                .size(12.dp)
-                .clip(RoundedCornerShape(50))
-                .background(PrimaryGold)
-        ) {
-            IconButton(
-                onClick = onDeleteClick,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Delete,
-                    contentDescription = "Delete Photo",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .scale(0.75f)
-                        .align(Alignment.Center)
-                        .background(PrimaryGold)
-                )
-            }
-        }
     }
 }

@@ -1,4 +1,4 @@
-package brawijaya.example.purisaehomestay.ui.screens.order.components
+package brawijaya.example.purisaehomestay.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -54,6 +54,7 @@ fun HistoryCard(
     numberFormat.maximumFractionDigits = 0
 
     val isPaid = paymentStatus === PaymentStatusStage.COMPLETED
+    val isRejected = paymentStatus === PaymentStatusStage.REJECTED
     val isOnVerification =
         paymentStatus === PaymentStatusStage.DP || paymentStatus === PaymentStatusStage.LUNAS || paymentStatus === PaymentStatusStage.SISA
 
@@ -150,7 +151,7 @@ fun HistoryCard(
                         Spacer(modifier = Modifier.width(8.dp))
 
                         Text(
-                            text = if (isPaid == true) "LUNAS" else "BELUM LUNAS",
+                            text = if (isPaid == true) "LUNAS" else if (isRejected) "DITOLAK" else "BELUM LUNAS",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = if (isPaid == true) Color.Green else Color.Red,
                                 fontWeight = FontWeight.Normal,
@@ -160,7 +161,7 @@ fun HistoryCard(
                     }
 
                     Text(
-                        text = numberFormat.format(totalPrice).replace("Rp", "Rp "),
+                        text = if (isRejected) numberFormat.format(0).replace("Rp", "Rp ") else numberFormat.format(totalPrice).replace("Rp", "Rp "),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Normal,
                             fontSize = 12.sp
@@ -168,7 +169,7 @@ fun HistoryCard(
                     )
                 }
 
-                if ((isPaid == false && amountToBePaid != null) || (isPaid == false && currentRoute == Screen.MonthlyReport.route)) {
+                if (!isRejected && ((isPaid == false && amountToBePaid != null) || (isPaid == false && currentRoute == Screen.MonthlyReport.route))) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth(),
@@ -252,7 +253,7 @@ fun HistoryCard(
         }
 
         if (currentRoute != Screen.MonthlyReport.route) {
-            if (isPaid == false && onButtonClick != null) {
+            if (!isPaid && !isRejected && onButtonClick != null) {
                 Button(
                     onClick = onButtonClick,
                     modifier = Modifier

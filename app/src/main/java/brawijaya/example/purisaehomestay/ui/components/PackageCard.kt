@@ -1,10 +1,17 @@
-package brawijaya.example.purisaehomestay.ui.screens.order.components
+package brawijaya.example.purisaehomestay.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,13 +30,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import java.text.NumberFormat
 import java.util.Locale
-import brawijaya.example.purisaehomestay.R
 
 @Composable
 fun PackageCard(
@@ -72,7 +79,7 @@ fun PackageCard(
                     } ?: painterResource(id = R.drawable.bungalow_single),
                     contentDescription = packageData.title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier
+                    modifier = Modifier.Companion
                         .fillMaxHeight()
                         .width(140.dp)
                         .clip(RoundedCornerShape(4.dp))
@@ -85,8 +92,10 @@ fun PackageCard(
                     item {
                         Text(
                             text = packageData.title,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Companion.Bold,
+                                fontSize = 14.sp
+                            ),
                             modifier = Modifier.padding(bottom = 4.dp),
                         )
                     }
@@ -103,7 +112,7 @@ fun PackageCard(
                                 )
                                 Text(
                                     text = feature,
-                                    fontSize = 12.sp,
+                                    style = MaterialTheme.typography.labelSmall,
                                     modifier = Modifier.padding(start = 8.dp)
                                 )
                             }
@@ -115,18 +124,21 @@ fun PackageCard(
                             text = "${
                                 numberFormat.format(packageData.price_weekday).replace("Rp", "Rp ")
                             }/malam (weekday)",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Companion.Bold
+                            ),
                             modifier = Modifier.padding(top = 4.dp)
                         )
 
                         if (packageData.price_weekend > 0) {
                             Text(
                                 text = "${
-                                    numberFormat.format(packageData.price_weekend).replace("Rp", "Rp ")
+                                    numberFormat.format(packageData.price_weekend)
+                                        .replace("Rp", "Rp ")
                                 } (weekend/holiday)",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Companion.Bold
+                                )
                             )
                         }
                     }
@@ -149,9 +161,11 @@ fun PackageCard(
             ) {
                 Text(
                     text = idx.toString(),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Companion.Bold
+                    ),
+                    color = Color.White
                 )
             }
 

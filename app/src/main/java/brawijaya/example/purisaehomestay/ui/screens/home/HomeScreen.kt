@@ -5,7 +5,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,7 +40,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -58,7 +58,7 @@ import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.components.BottomNavigation
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.components.NewsComponent
-import brawijaya.example.purisaehomestay.ui.screens.profile.ProfileContent
+import brawijaya.example.purisaehomestay.ui.screens.promo.components.HomeScreenPromoCard
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import brawijaya.example.purisaehomestay.ui.theme.Typography
 import brawijaya.example.purisaehomestay.ui.viewmodels.HomeUiState
@@ -71,7 +71,6 @@ fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-
     val uiState by viewModel.uiState.collectAsState()
 
     val scrollState = rememberScrollState()
@@ -147,7 +146,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.weight(1f))
 
                     IconButton(
-                        onClick = { navController.navigate(Screen.Notification.route) }
+                        onClick = {  }
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Notifications,
@@ -217,20 +216,15 @@ fun HomeScreenContent(
                 fontSize = 20.sp
             )
 
-            Row(
+            LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp)
-                    .horizontalScroll(rememberScrollState())
             ) {
-                repeat(5) {
-                    Box(
-                        modifier = Modifier
-                            .width(240.dp)
-                            .height(120.dp)
-                            .padding(end = 8.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.LightGray),
+                items(uiState.promo) { promoList ->
+                    HomeScreenPromoCard(
+                        promoData = promoList,
+                        onClick = { navController.navigate(Screen.Promo.route) }
                     )
                 }
             }
