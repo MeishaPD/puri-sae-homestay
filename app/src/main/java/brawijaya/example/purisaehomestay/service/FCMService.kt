@@ -1,10 +1,12 @@
 package brawijaya.example.purisaehomestay.service
 
+import android.Manifest
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.RingtoneManager
 import android.os.Build
@@ -58,12 +60,17 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             val title = notification.title ?: "Purisae Homestay"
             val body = notification.body ?: ""
 
-            // Extract notification type from data
             val notificationType = remoteMessage.data["type"]?.let {
                 NotificationType.valueOf(it)
             } ?: NotificationType.NEWS
 
-            showNotification(title, body, notificationType, remoteMessage.data)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                checkSelfPermission(POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            ) {
+                showNotification(title, body, notificationType, remoteMessage.data)
+            } else {
+                Log.w("FCM", "POST_NOTIFICATIONS permission not granted, cannot show notification.")
+            }
         }
 
         // Handle data payload (when app is in foreground)
