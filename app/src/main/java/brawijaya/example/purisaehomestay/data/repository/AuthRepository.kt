@@ -7,10 +7,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import androidx.core.net.toUri
+import brawijaya.example.purisaehomestay.utils.RateLimitManager
 
 sealed class AuthResult {
     object Success : AuthResult()
     data class Error(val message: String) : AuthResult()
+    data class RateLimited(val remainingTime: Long, val attemptsCount: Int) : AuthResult()
 }
 
 interface AuthRepository {
@@ -25,7 +27,8 @@ interface AuthRepository {
 
 class AuthRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val rateLimitManager: RateLimitManager
 ) : AuthRepository {
 
     override val currentUser: FirebaseUser?
@@ -47,8 +50,6 @@ class AuthRepositoryImpl @Inject constructor(
                     .setPhotoUri(photoUri)
                     .build()
                 user.updateProfile(profileUpdates).await()
-
-
 
                 val userData = hashMapOf(
                     "name" to name,
@@ -83,10 +84,26 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun signIn(email: String, password: String): AuthResult {
+        // Check rate limit before attempting login
+        val rateLimitInfo = rateLimitManager.checkRateLimit()
+        if (rateLimitInfo.isBlocked) {
+            return AuthResult.RateLimited(rateLimitInfo.remainingTime, rateLimitInfo.attemptsCount)
+        }
+
         return try {
             auth.signInWithEmailAndPassword(email, password).await()
+            // Record successful login to reset rate limiting
+            rateLimitManager.recordSuccessfulLogin()
             AuthResult.Success
         } catch (e: Exception) {
+            // Record failed attempt
+            val newRateLimitInfo = rateLimitManager.recordFailedAttempt()
+
+            // Check if user should be blocked after this attempt
+            if (newRateLimitInfo.isBlocked) {
+                return AuthResult.RateLimited(newRateLimitInfo.remainingTime, newRateLimitInfo.attemptsCount)
+            }
+
             when {
                 e.message?.contains("no user record") == true -> {
                     AuthResult.Error("Email tidak terdaftar")

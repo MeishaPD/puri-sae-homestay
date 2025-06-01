@@ -1,5 +1,6 @@
 package brawijaya.example.purisaehomestay.ui.screens.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,8 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -89,6 +92,12 @@ fun LoginScreen(
         }
     }
 
+    LaunchedEffect(uiState.rateLimitMessage) {
+        if (uiState.rateLimitMessage.isNotEmpty()) {
+            snackbarHostState.showSnackbar(uiState.rateLimitMessage)
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -151,6 +160,8 @@ fun LoginScreen(
                     isPasswordError = isPasswordError,
                     emailErrorMessage = emailErrorMessage,
                     passwordErrorMessage = passwordErrorMessage,
+                    isRateLimited = uiState.isRateLimited,
+                    rateLimitMessage = uiState.rateLimitMessage,
                     onLoginClick = {
                         var isValid = true
 
@@ -174,7 +185,7 @@ fun LoginScreen(
                             isValid = false
                         }
 
-                        if (isValid) {
+                        if (isValid && !uiState.isRateLimited) {
                             viewModel.signIn(email, password)
                         }
                     },
@@ -210,6 +221,8 @@ fun LoginContent(
     isPasswordError: Boolean,
     emailErrorMessage: String,
     passwordErrorMessage: String,
+    isRateLimited: Boolean,
+    rateLimitMessage: String,
     onLoginClick: () -> Unit,
     onRegisterClick: () -> Unit,
     onForgotPasswordClick: () -> Unit
@@ -240,6 +253,7 @@ fun LoginContent(
             ),
             shape = RoundedCornerShape(8.dp),
             isError = isEmailError,
+            enabled = !isRateLimited,
             supportingText = if (isEmailError) {
                 {
                     Text(
@@ -262,12 +276,16 @@ fun LoginContent(
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            enabled = !isRateLimited,
             trailingIcon = {
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                IconButton(
+                    onClick = { passwordVisible = !passwordVisible },
+                    enabled = !isRateLimited
+                ) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                         contentDescription = if (passwordVisible) "Sembunyikan Password" else "Tampilkan Password",
-                        tint = PrimaryGold
+                        tint = if (isRateLimited) Color.Gray else PrimaryGold
                     )
                 }
             },
@@ -278,7 +296,10 @@ fun LoginContent(
                 focusedLabelColor = if (isPasswordError) Color.Red else Color.Black,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
-                errorBorderColor = Color.Red
+                errorBorderColor = Color.Red,
+                disabledBorderColor = Color.Gray,
+                disabledLabelColor = Color.Gray,
+                disabledTextColor = Color.Gray
             ),
             shape = RoundedCornerShape(8.dp),
             isError = isPasswordError,
@@ -286,7 +307,6 @@ fun LoginContent(
                 {
                     Text(
                         text = passwordErrorMessage,
-
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Normal,
                             fontSize = 12.sp
@@ -296,6 +316,29 @@ fun LoginContent(
                 }
             } else null
         )
+
+        if (isRateLimited) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.Red.copy(alpha = 0.1f)
+                ),
+                border = BorderStroke(1.dp, Color.Red.copy(alpha = 0.3f))
+            ) {
+                Text(
+                    text = rateLimitMessage,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp
+                    ),
+                    color = Color.Red,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -308,12 +351,13 @@ fun LoginContent(
                     fontWeight = FontWeight.Normal,
                     fontSize = 12.sp
                 ),
+                color = if (isRateLimited) Color.Gray else Color.Unspecified
             )
 
-            TextButton(onClick = {onForgotPasswordClick}) {
+            TextButton(onClick = { onForgotPasswordClick }) {
                 Text(
                     text = "Klik di sini",
-                    color = PrimaryGold,
+                    color = if (isRateLimited) Color.Gray else PrimaryGold,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
@@ -326,17 +370,22 @@ fun LoginContent(
 
         Button(
             onClick = onLoginClick,
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+            enabled = !isRateLimited,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isRateLimited) Color.Gray else PrimaryGold,
+                disabledContainerColor = Color.Gray
+            ),
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
             Text(
-                text = "Masuk",
+                text = if (isRateLimited) "Login Diblokir" else "Masuk",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.Bold
-                )
+                ),
+                color = if (isRateLimited) Color.White else Color.Black
             )
         }
 
