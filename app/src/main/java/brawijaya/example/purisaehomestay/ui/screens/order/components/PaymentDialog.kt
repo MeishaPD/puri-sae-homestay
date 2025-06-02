@@ -32,16 +32,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import brawijaya.example.purisaehomestay.data.model.Order
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
 import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
 fun PaymentDialog(
-    order: Order,
+    totalPrice: Double,
+    paidAmount: Double,
+    remainingAmount: Double,
     onDismiss: () -> Unit,
-    onUploadClicked: () -> Unit
+    onUploadClicked: () -> Unit,
+    discountAmount: Double? = null
 ) {
     val numberFormat = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     numberFormat.maximumFractionDigits = 0
@@ -167,7 +169,7 @@ fun PaymentDialog(
                     )
 
                     Text(
-                        text = "Rp 2.000.000",
+                        text = numberFormat.format(totalPrice).replace("Rp", "Rp "),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
@@ -190,7 +192,7 @@ fun PaymentDialog(
                     )
 
                     Text(
-                        text = numberFormat.format(order.totalPrice).replace("Rp", "Rp "),
+                        text = numberFormat.format(paidAmount).replace("Rp", "Rp "),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Normal,
                             fontSize = 12.sp
@@ -213,14 +215,37 @@ fun PaymentDialog(
                     )
 
                     Text(
-                        text = order.amountToBePaid?.let {
-                            numberFormat.format(it).replace("Rp", "Rp ")
-                        } ?: "Rp 0",
+                        text = numberFormat.format(remainingAmount).replace("Rp", "Rp "),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
                         ),
                     )
+                }
+
+                if (discountAmount != null && discountAmount > 0) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        Text(
+                            text = "Anda hemat sebesar",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 12.sp
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Text(
+                            text = numberFormat.format(discountAmount).replace("Rp", "Rp "),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            ),
+                        )
+                    }
                 }
 
                 HorizontalDivider(
@@ -233,9 +258,7 @@ fun PaymentDialog(
                     contentAlignment = Alignment.CenterEnd
                 ) {
                     Text(
-                        text = order.amountToBePaid?.let {
-                            numberFormat.format(it).replace("Rp", "Rp ")
-                        } ?: "Rp 0",
+                        text = numberFormat.format(remainingAmount).replace("Rp", "Rp "),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
@@ -247,7 +270,9 @@ fun PaymentDialog(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
-                    onClick = onUploadClicked,
+                    onClick = {
+                        onUploadClicked()
+                    },
                     modifier = Modifier
                         .fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(

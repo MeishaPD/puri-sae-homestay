@@ -1,10 +1,17 @@
-package brawijaya.example.purisaehomestay.ui.screens.order.components
+package brawijaya.example.purisaehomestay.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,23 +25,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.R
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
 fun PackageCard(
-    paket: Paket,
+    idx: Int,
+    packageData: PackageData,
     isSelected: Boolean,
     onSelect: () -> Unit
 ) {
     val numberFormat = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     numberFormat.maximumFractionDigits = 0
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier
@@ -52,22 +65,25 @@ fun PackageCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Row {
-                paket.imageUrl?.let { painter ->
-                    Image(
-                        painter = painterResource(id = painter),
-                        contentDescription = paket.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .width(140.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    )
-                } ?: run {
-                    Spacer(
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp, vertical = 8.dp)
-                    )
-                }
+                Image(
+                    painter = packageData.thumbnail_url?.let {
+                        rememberAsyncImagePainter(
+                            ImageRequest.Builder(context)
+                                .data(data = it)
+                                .apply(block = {
+                                    crossfade(true)
+                                    placeholder(R.drawable.bungalow_single)
+                                })
+                                .build()
+                        )
+                    } ?: painterResource(id = R.drawable.bungalow_single),
+                    contentDescription = packageData.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.Companion
+                        .fillMaxHeight()
+                        .width(140.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                )
 
                 LazyColumn(
                     modifier = Modifier
@@ -75,15 +91,17 @@ fun PackageCard(
                 ) {
                     item {
                         Text(
-                            text = paket.title,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
+                            text = packageData.title,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Companion.Bold,
+                                fontSize = 14.sp
+                            ),
                             modifier = Modifier.padding(bottom = 4.dp),
                         )
                     }
 
                     item {
-                        paket.features.forEach { feature ->
+                        packageData.features.forEach { feature ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -94,7 +112,7 @@ fun PackageCard(
                                 )
                                 Text(
                                     text = feature,
-                                    fontSize = 12.sp,
+                                    style = MaterialTheme.typography.labelSmall,
                                     modifier = Modifier.padding(start = 8.dp)
                                 )
                             }
@@ -104,20 +122,23 @@ fun PackageCard(
                     item {
                         Text(
                             text = "${
-                                numberFormat.format(paket.weekdayPrice).replace("Rp", "Rp ")
+                                numberFormat.format(packageData.price_weekday).replace("Rp", "Rp ")
                             }/malam (weekday)",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Companion.Bold
+                            ),
                             modifier = Modifier.padding(top = 4.dp)
                         )
 
-                        if (paket.weekendPrice > 0) {
+                        if (packageData.price_weekend > 0) {
                             Text(
                                 text = "${
-                                    numberFormat.format(paket.weekendPrice).replace("Rp", "Rp ")
+                                    numberFormat.format(packageData.price_weekend)
+                                        .replace("Rp", "Rp ")
                                 } (weekend/holiday)",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Companion.Bold
+                                )
                             )
                         }
                     }
@@ -139,10 +160,12 @@ fun PackageCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = paket.id.toString(),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
+                    text = idx.toString(),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Companion.Bold
+                    ),
+                    color = Color.White
                 )
             }
 

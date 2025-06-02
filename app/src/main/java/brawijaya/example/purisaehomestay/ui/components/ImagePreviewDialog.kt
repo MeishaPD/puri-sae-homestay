@@ -1,5 +1,6 @@
 package brawijaya.example.purisaehomestay.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,20 +8,27 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -34,14 +42,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.zIndex
+import brawijaya.example.purisaehomestay.R
+import brawijaya.example.purisaehomestay.data.model.PackageData
+import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
+import java.text.NumberFormat
+import java.util.Locale
 
 @Composable
 fun ImagePreviewDialog(
-    imageResources: List<Int>,
+    imageUrls: List<String>,
     initialImageIndex: Int = 0,
     onDismiss: () -> Unit
 ) {
@@ -73,6 +93,7 @@ fun ImagePreviewDialog(
                         .padding(16.dp)
                         .size(40.dp)
                         .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                        .zIndex(1f)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
@@ -81,8 +102,8 @@ fun ImagePreviewDialog(
                     )
                 }
 
-                Image(
-                    painter = painterResource(id = imageResources[selectedImageIndex]),
+                AsyncImage(
+                    model = imageUrls[selectedImageIndex],
                     contentDescription = "Enlarged Image",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
@@ -122,7 +143,7 @@ fun ImagePreviewDialog(
                         }
                 )
 
-                if (imageResources.size > 1) {
+                if (imageUrls.size > 1) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -130,27 +151,29 @@ fun ImagePreviewDialog(
                             .padding(bottom = 24.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        if (selectedImageIndex > 0) {
-                            IconButton(
-                                onClick = {
+                        IconButton(
+                            onClick = {
+                                if (selectedImageIndex > 0) {
                                     selectedImageIndex--
                                     scale = 1f
                                     offsetX = 0f
                                     offsetY = 0f
-                                },
-                                modifier = Modifier
-                                    .padding(start = 16.dp)
-                                    .size(40.dp)
-                                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                                    contentDescription = "Previous Image",
-                                    tint = Color.White
+                                }
+                            },
+                            enabled = selectedImageIndex > 0,
+                            modifier = Modifier
+                                .padding(start = 16.dp)
+                                .size(40.dp)
+                                .background(
+                                    Color.Black.copy(alpha = if (selectedImageIndex > 0) 0.5f else 0f),
+                                    CircleShape
                                 )
-                            }
-                        } else {
-                            Box(modifier = Modifier.size(40.dp))
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                                contentDescription = "Previous Image",
+                                tint = Color.White.copy(alpha = if (selectedImageIndex > 0) 1f else 0f)
+                            )
                         }
 
                         Row(
@@ -161,7 +184,7 @@ fun ImagePreviewDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            imageResources.forEachIndexed { index, _ ->
+                            imageUrls.forEachIndexed { index, _ ->
                                 Box(
                                     modifier = Modifier
                                         .size(8.dp)
@@ -180,27 +203,29 @@ fun ImagePreviewDialog(
                             }
                         }
 
-                        if (selectedImageIndex < imageResources.size - 1) {
-                            IconButton(
-                                onClick = {
+                        IconButton(
+                            onClick = {
+                                if (selectedImageIndex < imageUrls.size - 1) {
                                     selectedImageIndex++
                                     scale = 1f
                                     offsetX = 0f
                                     offsetY = 0f
-                                },
-                                modifier = Modifier
-                                    .padding(end = 16.dp)
-                                    .size(40.dp)
-                                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                                    contentDescription = "Next Image",
-                                    tint = Color.White
+                                }
+                            },
+                            enabled = selectedImageIndex < imageUrls.size - 1,
+                            modifier = Modifier
+                                .padding(end = 16.dp)
+                                .size(40.dp)
+                                .background(
+                                    Color.Black.copy(alpha = if (selectedImageIndex < imageUrls.size - 1) 0.5f else 0f),
+                                    CircleShape
                                 )
-                            }
-                        } else {
-                            Box(modifier = Modifier.size(40.dp))
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                contentDescription = "Next Image",
+                                tint = Color.White.copy(alpha = if (selectedImageIndex < imageUrls.size - 1) 1f else 0f)
+                            )
                         }
                     }
                 }

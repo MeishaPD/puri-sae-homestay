@@ -111,6 +111,8 @@ fun ManageNewsScreen(
                 onAddNews = {
                     viewModel.resetSelectedNews()
                     navController.navigate(Screen.EditNews.createRoute())
+
+
                 }
             )
         }

@@ -1,103 +1,184 @@
 package brawijaya.example.purisaehomestay.service
 
+import android.Manifest
+import android.Manifest.permission.POST_NOTIFICATIONS
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Color
 import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import brawijaya.example.purisaehomestay.MainActivity
 import brawijaya.example.purisaehomestay.R
+import brawijaya.example.purisaehomestay.data.model.FCMRequest
+import brawijaya.example.purisaehomestay.data.model.FCMResponse
+import brawijaya.example.purisaehomestay.data.model.NotificationType
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.Header
+import retrofit2.http.POST
+import kotlin.jvm.java
 
-class FCMService : FirebaseMessagingService() {
+interface FCMService {
+    @POST("fcm/send")
+    suspend fun sendNotification(
+        @Header("Authorization") authorization: String,
+        @Header("Content-Type") contentType: String = "application/json",
+        @Body notification: FCMRequest
+    ): Response<FCMResponse>
+}
 
-    companion object {
-        private const val TAG = "FCMService"
-        private const val CHANNEL_ID = "puri_sae_notifications"
-        private const val CHANNEL_NAME = "Puri Sae Notifications"
+class MyFirebaseMessagingService : FirebaseMessagingService() {
+
+    override fun onNewToken(token: String) {
+        super.onNewToken(token)
+        Log.d("FCM", "New token: $token")
+
+        // Save token to SharedPreferences and Firebase
+        saveTokenToPreferences(token)
+        updateTokenInFirebase(token)
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        Log.d(TAG, "From: ${remoteMessage.from}")
+        super.onMessageReceived(remoteMessage)
 
-        // Check if message contains a data payload
-        remoteMessage.data.isNotEmpty().let {
-            Log.d(TAG, "Message data payload: ${remoteMessage.data}")
+        Log.d("FCM", "From: ${remoteMessage.from}")
 
-            // Handle notification data
-            val title = remoteMessage.data["title"] ?: ""
-            val message = remoteMessage.data["body"] ?: ""
-            val notificationType = remoteMessage.data["type"] ?: ""
-            val referenceId = remoteMessage.data["referenceId"] ?: ""
+        // Handle notification payload
+        remoteMessage.notification?.let { notification ->
+            val title = notification.title ?: "Purisae Homestay"
+            val body = notification.body ?: ""
 
-            if (title.isNotEmpty() && message.isNotEmpty()) {
-                sendNotification(title, message, notificationType, referenceId)
+            val notificationType = remoteMessage.data["type"]?.let {
+                NotificationType.valueOf(it)
+            } ?: NotificationType.NEWS
+
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                checkSelfPermission(POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            ) {
+                showNotification(title, body, notificationType, remoteMessage.data)
+            } else {
+                Log.w("FCM", "POST_NOTIFICATIONS permission not granted, cannot show notification.")
             }
         }
 
-        // Check if message contains a notification payload
-        remoteMessage.notification?.let {
-            Log.d(TAG, "Message Notification Body: ${it.body}")
-            it.body?.let { body ->
-                sendNotification(it.title ?: "Puri Sae Homestay", body, "", "")
-            }
+        // Handle data payload (when app is in foreground)
+        if (remoteMessage.data.isNotEmpty()) {
+            Log.d("FCM", "Message data payload: ${remoteMessage.data}")
+            handleDataPayload(remoteMessage.data)
         }
     }
 
-    override fun onNewToken(token: String) {
-        Log.d(TAG, "Refreshed token: $token")
-        // Send token to server
-        // FCMTokenManager instance would handle this in a real app
-        // fcmTokenManager.updateToken(token)
+    private fun saveTokenToPreferences(token: String) {
+        val sharedPref = getSharedPreferences("fcm_prefs", MODE_PRIVATE)
+        with(sharedPref.edit()) {
+            putString("fcm_token", token)
+            apply()
+        }
     }
 
-    private fun sendNotification(
+    private fun updateTokenInFirebase(token: String) {
+        // Update token in Firebase Firestore for current user
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        currentUser?.let { user ->
+            val db = FirebaseFirestore.getInstance()
+            db.collection("users").document(user.uid)
+                .update("fcmToken", token)
+                .addOnSuccessListener {
+                    Log.d("FCM", "Token updated in Firestore")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("FCM", "Error updating token", e)
+                }
+        }
+    }
+
+    @RequiresPermission(POST_NOTIFICATIONS)
+    private fun showNotification(
         title: String,
-        messageBody: String,
-        notificationType: String,
-        referenceId: String
+        body: String,
+        type: NotificationType,
+        data: Map<String, String>
     ) {
         val intent = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra("notification_clicked", true)
-            putExtra("notification_type", notificationType)
-            putExtra("reference_id", referenceId)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            // Add extras based on notification type
+            when (type) {
+                NotificationType.BOOKING_CREATED -> {
+                    putExtra("navigate_to", "orders")
+                    putExtra("order_id", data["order_id"])
+                }
+                NotificationType.PROMO -> {
+                    putExtra("navigate_to", "promos")
+                    putExtra("promo_id", data["promo_id"])
+                }
+                NotificationType.NEWS -> {
+                    putExtra("navigate_to", "news")
+                    putExtra("news_id", data["news_id"])
+                }
+                NotificationType.PAYMENT_CONFIRMED,
+                NotificationType.PAYMENT_REJECTED -> {
+                    putExtra("navigate_to", "order_detail")
+                    putExtra("order_id", data["order_id"])
+                }
+                NotificationType.PAYMENT_RECEIVED -> {
+                    putExtra("navigate_to", "admin_orders")
+                    putExtra("order_id", data["order_id"])
+                }
+            }
         }
 
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            this, 0, intent, PendingIntent.FLAG_IMMUTABLE
         )
 
-        val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.notification) // You'll need to add this resource
+        val channelId = "purisae_homestay_channel"
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.logo_under_text)
             .setContentTitle(title)
-            .setContentText(messageBody)
+            .setContentText(body)
             .setAutoCancel(true)
-            .setSound(defaultSoundUri)
+            .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
             .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
 
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = NotificationManagerCompat.from(this)
 
-        // Create notification channel for Android O and above
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_DEFAULT
+                channelId,
+                "Purisae Homestay Notifications",
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Puri Sae Homestay notifications"
+                description = "Notifications for booking updates, promos, and news"
                 enableLights(true)
+                lightColor = Color.BLACK
                 enableVibration(true)
             }
             notificationManager.createNotificationChannel(channel)
         }
 
         notificationManager.notify(System.currentTimeMillis().toInt(), notificationBuilder.build())
+    }
+
+    private fun handleDataPayload(data: Map<String, String>) {
+        // Handle data-only messages (when app is running)
+        // You can broadcast this data to update UI in real-time
+        val intent = Intent("com.purisae.FCM_MESSAGE_RECEIVED")
+        data.forEach { (key, value) ->
+            intent.putExtra(key, value)
+        }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Newspaper
 import androidx.compose.material.icons.rounded.PermContactCalendar
+import androidx.compose.material.icons.rounded.QueryStats
 import androidx.compose.material.icons.rounded.QuestionAnswer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -121,9 +122,10 @@ fun ProfileScreen(
                 .padding(innerPadding)
         ) {
             if (uiState.isLoading) {
-                Box(
+                Column(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     CircularProgressIndicator(color = PrimaryGold)
                 }
@@ -226,13 +228,22 @@ fun ProfileContent(
                     MenuItemWithIcon(
                         icon = Icons.Rounded.CreditCard,
                         title = "Kelola Pembayaran",
-                        onClick = {}
+                        onClick = {
+                            navController.navigate(Screen.ManagePayment.route)
+                        }
                     )
                     MenuItemWithIcon(
                         icon = Icons.Rounded.Newspaper,
                         title = "Kelola Berita",
                         onClick = {
                             navController.navigate(Screen.ManageNews.route)
+                        }
+                    )
+                    MenuItemWithIcon(
+                        icon = Icons.Rounded.QueryStats,
+                        title = "Laporan",
+                        onClick = {
+                            navController.navigate(Screen.MonthlyReport.route)
                         }
                     )
                 }

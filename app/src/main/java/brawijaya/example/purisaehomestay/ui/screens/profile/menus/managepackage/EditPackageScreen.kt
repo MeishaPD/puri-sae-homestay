@@ -1,8 +1,8 @@
 package brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage
 
+import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,21 +13,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,16 +45,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -62,36 +60,48 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import brawijaya.example.purisaehomestay.R
-import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.ui.components.GeneralDialog
+import brawijaya.example.purisaehomestay.ui.components.ImageUploader
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
-import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
+import brawijaya.example.purisaehomestay.ui.viewmodels.CloudinaryViewModel
+import brawijaya.example.purisaehomestay.ui.viewmodels.PackageViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditPackageScreen(
     navController: NavController,
-    viewModel: OrderViewModel = hiltViewModel(),
+    viewModel: PackageViewModel = hiltViewModel(),
+    cldViewModel: CloudinaryViewModel = hiltViewModel(),
     paketId: Int? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val cldUiState by cldViewModel.uiState.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
 
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var packageToDelete by remember { mutableStateOf<Paket?>(null) }
+    var packageToDelete by remember { mutableStateOf<PackageData?>(null) }
+    var showCancelDialog by remember { mutableStateOf(false) }
 
-    val paket = uiState.selectedPaket
+    var bungalowQtyDropdownExpanded by remember { mutableStateOf(false) }
+    var jogloQtyDropdownExpanded by remember { mutableStateOf(false) }
+
+    val paket = uiState.selectedPackageData
     val isLoading = uiState.isLoading
     val errorMessage = uiState.errorMessage
+    val isUploadingImage = cldUiState.isUploading
+    val cloudinaryImageUrl = cldUiState.imageUrl
+
+    var hasUnsavedChanges by remember { mutableStateOf(false) }
+    val isEditMode = paketId != null && paketId != 0 && paketId != -1
 
     LaunchedEffect(paketId) {
-        if (paketId != null && paketId > 0) {
+        if (isEditMode) {
+            Log.d("PAKET", "PAKET ID $paketId")
             viewModel.getPaketById(paketId)
-        } else {
-            viewModel.resetSelectedPaket()
         }
     }
 
@@ -105,19 +115,120 @@ fun EditPackageScreen(
     var title by remember { mutableStateOf("") }
     var weekdayPrice by remember { mutableStateOf("") }
     var weekendPrice by remember { mutableStateOf("") }
+    var bungalowQty by remember { mutableIntStateOf(1) }
+    var jogloQty by remember { mutableIntStateOf(0) }
     val features = remember { mutableStateListOf<String>() }
     var newFeature by remember { mutableStateOf("") }
-    var imageResId by remember { mutableStateOf<Int?>(null) }
+    var imageUrl by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(paket) {
         paket?.let {
             title = it.title
-            weekdayPrice = it.weekdayPrice.toString()
-            weekendPrice = it.weekendPrice.toString()
+            weekdayPrice = it.price_weekday.toString()
+            weekendPrice = it.price_weekend.toString()
             features.clear()
             features.addAll(it.features)
-            imageResId = it.imageUrl
+            jogloQty = it.jogloQty
+            bungalowQty = it.bungalowQty
+            imageUrl = it.thumbnail_url
         }
+    }
+
+    LaunchedEffect(
+        title,
+        weekdayPrice,
+        weekendPrice,
+        bungalowQty,
+        jogloQty,
+        features.size,
+        cloudinaryImageUrl
+    ) {
+        if (isEditMode && paket != null) {
+            hasUnsavedChanges = title != paket.title ||
+                    weekdayPrice != paket.price_weekday.toString() ||
+                    weekendPrice != paket.price_weekend.toString() ||
+                    bungalowQty != paket.bungalowQty ||
+                    jogloQty != paket.jogloQty ||
+                    features.toList() != paket.features ||
+                    cloudinaryImageUrl != null
+        } else if (!isEditMode) {
+            hasUnsavedChanges = title.isNotBlank() ||
+                    weekdayPrice.isNotBlank() ||
+                    weekendPrice.isNotBlank() ||
+                    features.isNotEmpty() ||
+                    cloudinaryImageUrl != null
+        }
+    }
+
+    BackHandler(enabled = hasUnsavedChanges) {
+        if (hasUnsavedChanges) {
+            showCancelDialog = true
+        } else {
+            navController.popBackStack()
+        }
+    }
+
+//    DisposableEffect(Unit) {
+//        onDispose {
+//           if (uiState.pendingImageForDeletion != null && !hasUnsavedChanges) {
+//              viewModel.cleanupPendingImage()
+//            }
+//        }
+//    }
+
+    fun handleBackNavigation() {
+//        if (uiState.pendingImageForDeletion != null) {
+//            viewModel.cleanupPendingImage()
+//        }
+        navController.popBackStack()
+    }
+
+    fun validateAndSavePackage() {
+        val currentImageUrl = cloudinaryImageUrl ?: imageUrl
+        if (currentImageUrl.isNullOrBlank()) {
+            viewModel.updateErrorMessage("Gambar paket harus dipilih")
+            return
+        }
+
+        if (title.isBlank()) {
+            viewModel.updateErrorMessage("Judul paket tidak boleh kosong")
+            return
+        }
+
+        if (weekdayPrice.isBlank()) {
+            viewModel.updateErrorMessage("Harga weekday tidak boleh kosong")
+            return
+        }
+
+        if (weekendPrice.isBlank()) {
+            viewModel.updateErrorMessage("Harga weekend tidak boleh kosong")
+            return
+        }
+
+        if (features.isEmpty()) {
+            viewModel.updateErrorMessage("Minimal satu fitur harus ditambahkan")
+            return
+        }
+
+        val newPackageData = PackageData(
+            id = paketId ?: (uiState.packageList.maxOfOrNull { it.id } ?: 0),
+            title = title,
+            features = features.toList(),
+            price_weekday = weekdayPrice.toDoubleOrNull() ?: 0.0,
+            price_weekend = weekendPrice.toDoubleOrNull() ?: 0.0,
+            thumbnail_url = currentImageUrl,
+            jogloQty = jogloQty.toInt(),
+            bungalowQty = bungalowQty.toInt()
+        )
+
+        if (isEditMode) {
+            viewModel.updatePackage(newPackageData)
+        } else {
+            viewModel.createPackage(newPackageData)
+        }
+
+//        viewModel.markImageAsSaved()
+        navController.popBackStack()
     }
 
     Scaffold(
@@ -128,7 +239,7 @@ fun EditPackageScreen(
                 ),
                 title = {
                     Text(
-                        text = if (paketId != null && paketId > 0) "Edit Paket" else "Tambah Paket Baru",
+                        text = if (isEditMode) "Edit Paket" else "Tambah Paket Baru",
                         color = PrimaryGold,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Normal,
@@ -137,7 +248,13 @@ fun EditPackageScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        if (hasUnsavedChanges) {
+                            showCancelDialog = true
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
                             contentDescription = "Kembali",
@@ -166,42 +283,18 @@ fun EditPackageScreen(
                         .padding(16.dp)
                         .verticalScroll(scrollState)
                 ) {
-                    Box(
+
+                    ImageUploader(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .border(1.dp, PrimaryGold, RoundedCornerShape(8.dp))
-                            .clickable { /* TODO: Implement image picker */ },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (imageResId != null) {
-                            Image(
-                                painter = painterResource(id = imageResId!!),
-                                contentDescription = "Package Image",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CameraAlt,
-                                    contentDescription = "Add Image",
-                                    tint = PrimaryGold,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Tambah Gambar",
-                                    color = PrimaryGold,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
-                    }
+                            .height(200.dp),
+                        imageUrl = cloudinaryImageUrl ?: imageUrl,
+                        placeHolderResId = null,
+                        onImageUrlChanged = { uri ->
+                            cldViewModel.uploadImage(uri)
+                        },
+                        isUploading = isUploadingImage
+                    )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -263,6 +356,144 @@ fun EditPackageScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            OutlinedTextField(
+                                value = bungalowQty.toString(),
+                                onValueChange = {},
+                                label = { Text("Jumlah Bungalow") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        bungalowQtyDropdownExpanded = true
+                                    },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
+                                    focusedBorderColor = PrimaryGold,
+                                    disabledBorderColor = PrimaryGold,
+                                    disabledTextColor = Color.Black,
+                                    disabledLabelColor = Color.Black
+                                ),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done
+                                ),
+                                singleLine = true,
+                                readOnly = true,
+                                enabled = false,
+                                trailingIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            bungalowQtyDropdownExpanded = true
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                                            contentDescription = "Dropdown"
+                                        )
+                                    }
+                                },
+                                shape = RoundedCornerShape(8.dp)
+                            )
+
+                            DropdownMenu(
+                                expanded = bungalowQtyDropdownExpanded,
+                                onDismissRequest = { bungalowQtyDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("1") },
+                                    onClick = {
+                                        bungalowQty = 1
+                                        bungalowQtyDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("2") },
+                                    onClick = {
+                                        bungalowQty = 2
+                                        bungalowQtyDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("3") },
+                                    onClick = {
+                                        bungalowQty = 3
+                                        bungalowQtyDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            OutlinedTextField(
+                                value = jogloQty.toString(),
+                                onValueChange = {},
+                                label = { Text("Jumlah Joglo") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        jogloQtyDropdownExpanded = true
+                                    },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = PrimaryGold.copy(alpha = 0.5f),
+                                    focusedBorderColor = PrimaryGold,
+                                    disabledBorderColor = PrimaryGold,
+                                    disabledTextColor = Color.Black,
+                                    disabledLabelColor = Color.Black
+                                ),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done
+                                ),
+                                singleLine = true,
+                                readOnly = true,
+                                enabled = false,
+                                trailingIcon = {
+                                    IconButton(
+                                        onClick = {
+                                            jogloQtyDropdownExpanded = true
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                                            contentDescription = "Dropdown"
+                                        )
+                                    }
+                                },
+                                shape = RoundedCornerShape(8.dp)
+                            )
+
+                            DropdownMenu(
+                                expanded = jogloQtyDropdownExpanded,
+                                onDismissRequest = { jogloQtyDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("0") },
+                                    onClick = {
+                                        jogloQty = 0
+                                        jogloQtyDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("1") },
+                                    onClick = {
+                                        jogloQty = 1
+                                        jogloQtyDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
                     Text(
                         text = "Fitur-fitur Paket",
                         style = MaterialTheme.typography.titleMedium.copy(
@@ -320,10 +551,7 @@ fun EditPackageScreen(
                             features.forEachIndexed { index, feature ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                    ),
-                                    elevation = CardDefaults.cardElevation(2.dp)
+                                    border = BorderStroke(1.dp, PrimaryGold)
                                 ) {
                                     Row(
                                         modifier = Modifier
@@ -344,7 +572,7 @@ fun EditPackageScreen(
                                             Icon(
                                                 imageVector = Icons.Rounded.Delete,
                                                 contentDescription = "Hapus Fitur",
-                                                tint = Color.Red
+                                                tint = PrimaryGold
                                             )
                                         }
                                     }
@@ -356,60 +584,20 @@ fun EditPackageScreen(
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Button(
-                        onClick = {
-                            if (title.isBlank()) {
-                                viewModel.updateErrorMessage("Judul paket tidak boleh kosong")
-                                return@Button
-                            }
-
-                            if (weekdayPrice.isBlank()) {
-                                viewModel.updateErrorMessage("Harga weekday tidak boleh kosong")
-                                return@Button
-                            }
-
-                            if (features.isEmpty()) {
-                                viewModel.updateErrorMessage("Minimal satu fitur harus ditambahkan")
-                                return@Button
-                            }
-
-                            val defaultImageId = if (paketId == 1) {
-                                R.drawable.bungalow_single
-                            } else if (paketId == 2) {
-                                R.drawable.bungalow_group
-                            } else {
-                                R.drawable.wedding_venue
-                            }
-
-                            val newPaket = Paket(
-                                id = paketId ?: ((uiState.packageList.maxOfOrNull { it.id }
-                                    ?: 0) + 1),
-                                title = title,
-                                features = features.toList(),
-                                weekdayPrice = weekdayPrice.toDoubleOrNull() ?: 0.0,
-                                weekendPrice = weekendPrice.toDoubleOrNull() ?: 0.0,
-                                imageUrl = imageResId ?: defaultImageId
-                            )
-
-                            if (paketId != null && paketId > 0) {
-                                viewModel.updatePackage(newPaket)
-                            } else {
-                                viewModel.createPackage(newPaket)
-                            }
-                            navController.popBackStack()
-                        },
+                        onClick = { validateAndSavePackage() },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = if (paketId != null && paketId > 0) "Simpan Perubahan" else "Tambah Paket",
+                            text = if (isEditMode) "Simpan Perubahan" else "Tambah Paket",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Bold
                             )
                         )
                     }
 
-                    if (paketId != null && paketId > 0) {
+                    if (isEditMode) {
                         OutlinedButton(
                             onClick = {
                                 packageToDelete = paket
@@ -446,10 +634,27 @@ fun EditPackageScreen(
                 showDeleteDialog = false
             },
             onConfirm = {
-                packageToDelete?.id?.let { viewModel.deletePackage(packageToDelete!!.id) }
+                packageToDelete?.id?.let { viewModel.deletePackage(it) }
                 showDeleteDialog = false
                 packageToDelete = null
                 navController.popBackStack()
+            }
+        )
+    }
+
+    if (showCancelDialog) {
+        GeneralDialog(
+            message = if (hasUnsavedChanges) {
+                "Anda memiliki perubahan yang belum disimpan. Apakah Anda yakin ingin keluar?"
+            } else {
+                "Apakah Anda yakin ingin membatalkan?"
+            },
+            onDismiss = {
+                showCancelDialog = false
+            },
+            onConfirm = {
+                showCancelDialog = false
+                handleBackNavigation()
             }
         )
     }

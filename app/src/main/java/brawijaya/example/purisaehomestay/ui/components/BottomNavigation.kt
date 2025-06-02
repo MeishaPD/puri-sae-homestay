@@ -26,7 +26,6 @@ import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,7 +43,6 @@ import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.theme.LightGreyBg
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PuriSaeHomestayTheme
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 @Composable
 fun BottomNavigation(
@@ -167,20 +165,6 @@ fun BottomNavItem(
                 modifier = Modifier.size(24.dp)
             )
         }
-    }
-}
-
-@Composable
-fun SetupTransparentSystemBars() {
-    val systemUiController = rememberSystemUiController()
-
-    DisposableEffect(systemUiController) {
-        systemUiController.setNavigationBarColor(
-            color = Color.Transparent,
-            darkIcons = true
-        )
-
-        onDispose {}
     }
 }
 

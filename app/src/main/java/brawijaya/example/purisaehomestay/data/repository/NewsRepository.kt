@@ -1,108 +1,98 @@
 package brawijaya.example.purisaehomestay.data.repository
 
-import brawijaya.example.purisaehomestay.R
 import brawijaya.example.purisaehomestay.data.model.NewsData
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class NewsRepository @Inject constructor(
-    private val firestore: FirebaseFirestore
+    firestore: FirebaseFirestore
 ) {
-
-    private val _news = MutableStateFlow<List<NewsData>>(getInitialNews())
+    private val _news = MutableStateFlow<List<NewsData>>(emptyList())
     val news: Flow<List<NewsData>> = _news.asStateFlow()
 
-    private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    private val newsCollection = firestore.collection("news")
 
-    fun getInitialNews(): List<NewsData> {
-        return listOf(
-            NewsData(
-                id = 1,
-                description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-                date = "09/05/2025",
-                imageUrl = listOf(
-                    R.drawable.bungalow_group,
-                    R.drawable.bungalow_single,
-                    R.drawable.landscape_view,
-                    R.drawable.wedding_venue
-                )
-            ),
-            NewsData(
-                id = 2,
-                description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-                date = "05/09/2025",
-                imageUrl = listOf(
-                    R.drawable.bungalow_group,
-                    R.drawable.landscape_view
-                )
-            ),
-            NewsData(
-                id = 3,
-                description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-                date = "12/12/2024",
-                imageUrl = listOf(
-                    R.drawable.bungalow_group,
-                )
+    suspend fun fetchAllNews(): List<NewsData> {
+        return try {
+            val result = newsCollection
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .await()
+
+            val newsList = result.toObjects(NewsData::class.java)
+            _news.value = newsList
+            newsList
+        } catch (e: Exception) {
+            throw Exception("Failed to fetch news: ${e.message}")
+        }
+    }
+
+    suspend fun getNewsById(id: String): NewsData? {
+        return try {
+            val document = newsCollection.document(id).get().await()
+            document.toObject(NewsData::class.java)
+        } catch (e: Exception) {
+            throw Exception("Failed to get news by ID: ${e.message}")
+        }
+    }
+
+    suspend fun createNews(news: NewsData): String {
+        return try {
+            val docRef = newsCollection.document()
+            val newsWithId = news.copy(
+                id = docRef.id,
+                createdAt = Timestamp.now(),
+                updatedAt = Timestamp.now()
             )
-        )
+            docRef.set(newsWithId).await()
+
+            val currentNews = _news.value.toMutableList()
+            currentNews.add(0, newsWithId)
+            _news.value = currentNews
+
+            docRef.id
+        } catch (e: Exception) {
+            throw Exception("Failed to create news: ${e.message}")
+        }
+    }
+
+    suspend fun updateNews(news: NewsData) {
+        try {
+            val updatedNews = news.copy(updatedAt = Timestamp.now())
+            newsCollection.document(news.id).set(updatedNews).await()
+
+            val currentNews = _news.value.toMutableList()
+            val index = currentNews.indexOfFirst { it.id == news.id }
+            if (index != -1) {
+                currentNews[index] = updatedNews
+                _news.value = currentNews
+            }
+        } catch (e: Exception) {
+            throw Exception("Failed to update news: ${e.message}")
+        }
+    }
+
+    suspend fun deleteNews(id: String) {
+        try {
+            newsCollection.document(id).delete().await()
+
+            val currentNews = _news.value.toMutableList()
+            currentNews.removeIf { it.id == id }
+            _news.value = currentNews
+        } catch (e: Exception) {
+            throw Exception("Failed to delete news: ${e.message}")
+        }
     }
 
     fun getNewsSortedByLatestDate(): List<NewsData> {
-        return _news.value.sortedByDescending { parseDate(it.date) }
-    }
-
-    private fun parseDate(dateString: String): Date {
-        return try {
-            dateFormat.parse(dateString) ?: Date(0)
-        } catch (e: Exception) {
-            Date(0)
-        }
-    }
-
-    fun createNews(news: NewsData) {
-        val currentNews = _news.value.toMutableList()
-
-        if (currentNews.any { it.id == news.id }) return
-
-        currentNews.add(news)
-        _news.value = currentNews
-    }
-
-    fun getNewsById(id: Int): NewsData? {
-        return _news.value.find { it.id == id }
-    }
-
-    fun getAllNews(): List<NewsData> {
-        return _news.value
-    }
-
-    fun getAllNewsSortedByDate(): List<NewsData> {
-        return getNewsSortedByLatestDate()
-    }
-
-    fun updateNews(news: NewsData) {
-        val currentNews = _news.value.toMutableList()
-        val index = currentNews.indexOfFirst { it.id == news.id }
-
-        if (index != -1) {
-            currentNews[index] = news
-            _news.value = currentNews
-        }
-    }
-
-    fun deleteNews(id: Int) {
-        val currentNews = _news.value.toMutableList()
-        currentNews.removeIf { it.id == id }
-        _news.value = currentNews
+        return _news.value.sortedByDescending { it.createdAt.seconds }
     }
 }

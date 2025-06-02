@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
@@ -40,20 +40,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import brawijaya.example.purisaehomestay.data.model.Paket
+import brawijaya.example.purisaehomestay.data.model.PackageData
 import brawijaya.example.purisaehomestay.ui.navigation.Screen
 import brawijaya.example.purisaehomestay.ui.screens.profile.menus.managepackage.components.EmptyPackageList
-import brawijaya.example.purisaehomestay.ui.screens.order.components.PackageCard
-import brawijaya.example.purisaehomestay.ui.viewmodels.OrderUiState
-import brawijaya.example.purisaehomestay.ui.viewmodels.OrderViewModel
+import brawijaya.example.purisaehomestay.ui.components.PackageCard
+import brawijaya.example.purisaehomestay.ui.viewmodels.PackageUiState
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryDarkGreen
 import brawijaya.example.purisaehomestay.ui.theme.PrimaryGold
+import brawijaya.example.purisaehomestay.ui.viewmodels.PackageViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManagePackageScreen(
     navController: NavController,
-    viewModel: OrderViewModel = hiltViewModel()
+    viewModel: PackageViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -119,8 +119,8 @@ fun ManagePackageScreen(
 
 @Composable
 fun ManagePackageContent(
-    uiState: OrderUiState,
-    onEditPackage: (Paket) -> Unit = {},
+    uiState: PackageUiState,
+    onEditPackage: (PackageData) -> Unit = {},
     onAddPackage: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -146,13 +146,15 @@ fun ManagePackageContent(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(uiState.packageList) { paket ->
+                itemsIndexed(uiState.packageList) { index, paket ->
                     PackageCard(
-                        paket = paket,
+                        idx = index + 1,
+                        packageData = paket,
                         isSelected = false,
                         onSelect = { onEditPackage(paket) }
                     )
                 }
+
 
                 item {
                     OutlinedButton(
